@@ -21,7 +21,7 @@ ggplot(Hak.gps, aes(x = longitude, y = latitude)) +
 
 Hak=c(19.82158002,	-155.317)
 map <- GetMap(center = Hak, zoom = 17, maptype = "satellite", SCALE = 2, 
-              API_console_key="AIzaSyBPQLRsZ6EgkW5hP6spsnAFNqktUTse8YM") # enter use API here
+              API_console_key="xxx") # enter use API here
 
 # plot and export
 #png(file= "Google Drive/Hynson Lab/Hakalau/R/sitemap.test.png", height=3.5, width=3.5, units="in", res=300)
