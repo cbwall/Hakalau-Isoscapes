@@ -12,27 +12,16 @@ library("ggmap")
 library("gridExtra")
 
 # load data
-Hak.gps<-read.csv("~/Google Drive/Hynson Lab/Hakalau/R/hakalau.gps.csv")
-
+Hak.gps<-read.csv("data/Hakalau.gps.csv")
+API<-read.csv("data/API_key.csv")
+API.key<-API[1,1]
 
 ggplot(Hak.gps, aes(x = longitude, y = latitude)) +
   coord_quickmap() +
   geom_point()
 
-Hak=c(19.82158002,	-155.317)
-map <- GetMap(center = Hak, zoom = 17, maptype = "satellite", SCALE = 2, 
-              API_console_key="xxx") # enter use API here
-
-# plot and export
-#png(file= "Google Drive/Hynson Lab/Hakalau/R/sitemap.test.png", height=3.5, width=3.5, units="in", res=300)
-par(oma=c(3,3,0,0))
-
-PlotOnStaticMap(map, lat=Hak.gps$latitude, lon=Hak.gps$longitude, 
-                col="white", pch=16, cex=0.5)
-#dev.off()
-
 ######## using ggmap
-register_google(key="AIzaSyBPQLRsZ6EgkW5hP6spsnAFNqktUTse8YM")
+register_google(key=API.key)
 
 Hak.rev=c(-155.317, 19.82158002)
 map2<-get_map(Hak.rev, 
@@ -41,12 +30,12 @@ map2<-get_map(Hak.rev,
                       maptype= "satellite",
                       source="google", extent= "device", legend="topright")
 
-png(file= "sitemap.test.png", height=5, width=5, units="in", res=300)
+png(file= "figures/sitemap.test.png", height=5, width=5, units="in", res=300)
 par(oma=c(3,3,0,0))
 ggmap(map2)+
-  geom_point(aes(x=longitude, y=latitude), data=Hak.gps, alpha=0.5, color="dodgerblue", size=1)
+  geom_point(aes(x=longitude, y=latitude), data=Hak.gps, alpha=0.5, color="dodgerblue", size=1)+
+  labs(x="Longitude", y="Latitude")
 dev.off()
-
 
 # AK or RK only
 AK<- Hak.gps[(Hak.gps$Site=="AK"),]
@@ -87,7 +76,7 @@ RK.map<-ggmap(mapRK, group=type)+
   labs(x="Longitude", y="") + ggtitle("RK-Remnant")
 
 ### export it
-png(file= "RK.AK.sitemaps.png", height=5, width=9, units="in", res=300)
+png(file= "figures/RK.AK.sitemaps.png", height=5, width=9, units="in", res=300)
 grid.arrange(AK.map, RK.map, ncol = 2)
 dev.off()
 
