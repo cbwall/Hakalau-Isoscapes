@@ -20,18 +20,28 @@ require("knitr")
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 
 # load packages
+suppressPackageStartupMessages({
 library("RgoogleMaps")
 library("SDMTools")
 library("rgdal")
 library("ggmap")
 library("gridExtra")
+library("cowplot")
+library("sp")
+library("gstat")
+library("plotrix")
+library("dplyr") # for "glimpse"
+library("ggplot2")
+library("scales") # for "comma"
+library("magrittr")
+})
 ```
 
 ## Background  
 **Hakalau National Forest Wildlife Refuge Isoscapes**  
-Data collected 20-21 August 2019 in Hakalau Forest, Hawai'i Island. Soil and plant samples collected from remnant ko forests (*RK sites*) and those afforested/planted after a century of deforestation from cattle grazing (*AK sites*). Target engineers of forest habitats are *Acacia koa* (common name: koa), an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria. Understory species include *Rubus argutus* -- an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiiensis* (common name: 'Ākala); both are members of the Roseaceae family.  
+Data collected 20-21 August 2019 in Hakalau Forest, Hawai'i Island. Soil and plant samples collected from remnant ko forests (*RK sites*) and those afforested/planted after a century of deforestation from cattle grazing (*AK sites*). Target engineers of forest habitats are *Acacia koa* (common name: koa), an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria. Understory species include *Rubus argutus* -- an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiiensis* (common name: 'Ākala); both are members of the Roseaceae family. Noteably, *R. argutus* was found more in the remnant plot (i.e., RK) and the indigenous *R. hawaiiensis* was common in the restored plot (i.e, AK). 
 
-Soil samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a C- and N-stable isotope landscape, hereafter 'isoscape'. Koa and *Rubus* spp. were collected within each 4 x 5m sublot.
+Soil samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a δ^13^C and δ^15^N stable isotope landscape, hereafter 'isoscape'. Koa and *Rubus* spp. were collected within each 4 x 5m sublot.
 
 
 ### Site Maps
@@ -108,12 +118,314 @@ dev.off()
 
 ```
 
+#### Isotope data
+```{r, isotope data}
+iso.dat<-read.csv("data/Hakalau.isotopes.csv")
+iso.data<- iso.dat %>%
+  select(c(Plot, Sample, d15N, d13C, Total.N..mmol.gdw, Total.C..mmol.gdw, C.N))
 
+iso.scatter<-ggplot(data=iso.dat, aes(x=d13C, y=d15N, color=Plot, shape=Sample))+
+  geom_point(cex=1.5) +
+  xlab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))) +
+  ylab(expression(paste(delta^{15}, N, " (\u2030, air)"))) 
+
+total.nut<-ggplot(data=iso.dat, aes(x=Total.C..mmol.gdw, y=Total.N..mmol.gdw, color=Plot, shape=Sample))+
+  geom_point(cex=1.5) +
+  xlab("total Carbon") +
+  ylab("total Nitrogen")
+
+#  figures together
+plot_grid(iso.scatter, total.nut,
+     labels=c('a', 'b'), label_size=10, hjust=-1, vjust= 3, ncol=2, nrow=1)
+dev.copy(pdf, "figures/scatter.data.pdf", width=7, height=4, encod="MacRoman")
+dev.off()
+
+
+
+## make some means and SE
+d13C.m<-aggregate(d13C~Plot+Sample, data=iso.dat, mean)
+d15N.m<-aggregate(d15N~Plot+Sample, data=iso.dat, mean)
+TN.m<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=iso.dat, mean)
+TC.m<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=iso.dat, mean)
+
+d13C.SE<-aggregate(d13C~Plot+Sample, data=iso.dat, std.error)
+d15N.SE<-aggregate(d15N~Plot+Sample, data=iso.dat, std.error)
+TN.SE<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=iso.dat, std.error)
+TC.SE<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=iso.dat, std.error)
+
+mean.data<- cbind(d13C.m, d15N.m[3], TN.m[3], TC.m[3], d13C.SE[3], d15N.SE[3], TN.SE[3], TC.SE[3])
+colnames(mean.data)<-c("Plot", "Sample", "d13C.mean", "d15N.mean", "TN.mean", "TC.mean", "d15N.SE", "d13C.SE", "TN.SE", "TC.SE")
+
+
+### make mean plots
+pd <- position_dodge(0.7) #offset for error bars
+
+### d13C
+d13C.plot<-ggplot(data=mean.data, aes(x=Plot, y=d13C.mean, fill=Sample, group=Sample))+
+  geom_bar(stat="identity", position = pd, width=0.7)+
+  geom_errorbar(aes(ymin=d13C.mean-d13C.SE, ymax=d13C.mean+d13C.SE), size=.5, width=0, position=pd) +
+  scale_fill_manual(values=c('skyblue1','mediumseagreen', "seagreen", "goldenrod")) +
+  xlab("Plots") +
+  ylab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)")))
+
+### d15N
+d15N.plot<-ggplot(data=mean.data, aes(x=Plot, y=d15N.mean, fill=Sample, group=Sample))+
+  geom_bar(stat="identity", position = pd, width=0.7)+
+  geom_errorbar(aes(ymin=d15N.mean-d15N.SE, ymax=d15N.mean+d15N.SE), size=.5, width=0, position=pd) +
+  scale_fill_manual(values=c('skyblue1','mediumseagreen', "seagreen", "goldenrod")) +
+  xlab("Plots") +
+  ylab(expression(paste(delta^{15}, N, " (\u2030, air)")))
+
+### total Carbon
+TC.plot<-ggplot(data=mean.data, aes(x=Plot, y=TC.mean, fill=Sample, group=Sample))+
+  geom_bar(stat="identity", position = pd, width=0.7)+
+  geom_errorbar(aes(ymin=TC.mean-TC.SE, ymax=TC.mean+TC.SE), size=.5, width=0, position=pd) +
+  scale_fill_manual(values=c('skyblue1','mediumseagreen', "seagreen", "goldenrod")) +
+  xlab("Plots") +
+  ylab("Total Carbon")
+
+### total Nitrogen
+TN.plot<-ggplot(data=mean.data, aes(x=Plot, y=TN.mean, fill=Sample, group=Sample))+
+  geom_bar(stat="identity", position = pd, width=0.7)+
+  geom_errorbar(aes(ymin=TN.mean-TN.SE, ymax=TN.mean+TN.SE), size=.5, width=0, position=pd) +
+  scale_fill_manual(values=c('skyblue1','mediumseagreen', "seagreen", "goldenrod")) +
+  xlab("Plots") +
+  ylab("Total Nitrogen")
+
+#  figures together
+plot_grid(d13C.plot, d15N.plot, TC.plot, TN.plot,
+     labels=c('a', 'b', 'c', 'd'), label_size=10, hjust=-1, vjust= 3, ncol=2, nrow=2)
+dev.copy(pdf, "figures/mean.data.plots.pdf", width=7, height=7, encod="MacRoman")
+dev.off()
+```
 
 ```{r}
+library(plyr)
+# load data
+krig<-read.csv("data/kriging.test.csv") # matrix of points for isoscape grid
 
+# merge kriging data with isotope data
+data.merge<-as.data.frame(join_all(list(iso.dat, krig), by = "Position.point", type='full'))
+
+data.merge<-data.merge[c(-167:-194),] # drop NAs where no samples taken
+scape.data<-data.merge
+
+# just AK site
+krig.AK<- scape.data %>% filter(Plot=="AK")
+
+# example map with 
+AK.map<-krig.AK %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter)) + geom_point(aes(size=d15N), color="forestgreen", alpha=3/4) + 
+  ggtitle("AK plot--d15N (permil)") + coord_equal() + theme_bw()
+
+# just RK site
+krig.RK<- scape.data %>% filter(Plot=="RK")
+
+# example map with 
+RK.map<-krig.RK %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter)) + geom_point(aes(size=d15N), color="dodgerblue", alpha=3/4) +
+  ggtitle("RK plot--d15N (permil)") + coord_equal() + theme_bw()
+
+
+plot_grid(RK.map, AK.map, ncol=2, nrow=1)
+dev.copy(pdf, "figures/dot.scape.pdf", width=7, height=4, encod="MacRoman")
+dev.off()
+
+
+coordinates(krig.AK)<- ~x.meter + y.meter
+str(krig.AK)
+vario.dir1 <- variogram(d15N~x.meter+y.meter, krig.AK, alpha=c(0,45,90,135))
+
+vario.dir2 <- variogram(d15N~1, krig.AK, width=90, cutoff=1300)
+vario.fit <- fit.variogram(vario.dir2, vgm(1, "Sph", 900, 1)) # fit model
+plot(vario.resid, vario.fit) # plot the sample values, along with the fit model
+
+
+
+
+# Kriging 
+
+# need to make a grid to match where kriging/estimation is done
+grid<-makegrid(krig.AK, n=2000)
+colnames(grid)<-c('x.meter', 'y.meter')
+grid<-as.data.frame(grid)
+
+#where we have measurements
+plot1 <- krig.AK %>% as.data.frame %>%
+  ggplot(aes(x.meter, y.meter)) + geom_point(size=1) + coord_equal() + 
+  ggtitle("Points with measurements")
+
+# where we WANT measurements
+plot2 <- grid %>% as.data.frame %>%
+  ggplot(aes(x.meter, y.meter)) + geom_point(size=0.5) + coord_equal() + 
+  ggtitle("Points at which to estimate")
+
+#### make the plots
+grid.arrange(plot1, plot2, ncol = 2)
+
+# make coordinates for grid (as we did for test data)
+coordinates(grid)<- ~ x.meter + y.meter
+
+# fit the model for the krig object (grid) and use model fit from corresponding model data above
+test.krig<-krige(d15N~x.meter+y.meter, krig.AK, grid, model=vario.fit)
+
+AK.isoscape<- test.krig %>% as.data.frame %>%
+  ggplot(aes(x=x.meter, y=y.meter)) + geom_tile(aes(fill=var1.pred)) + coord_equal() +
+  scale_fill_gradient(low = "yellow", high="red") +
+  ggtitle("AK isoscape") +
+  scale_x_continuous(labels=comma) + scale_y_continuous(labels=comma) +
+  theme_bw()
+
+
+
+#######
+coordinates(krig.RK)<- ~x.meter + y.meter
+str(krig.RK)
+
+grid<-makegrid(krig.RK, n=2000)
+colnames(grid)<-c('x.meter', 'y.meter')
+grid<-as.data.frame(grid)
+
+#where we have measurements
+plot1 <- krig.RK %>% as.data.frame %>%
+  ggplot(aes(x.meter, y.meter)) + geom_point(size=1) + coord_equal() + 
+  ggtitle("Points with measurements")
+
+# where we WANT measurements
+plot2 <- grid %>% as.data.frame %>%
+  ggplot(aes(x.meter, y.meter)) + geom_point(size=0.5) + coord_equal() + 
+  ggtitle("Points at which to estimate")
+
+#### make the plots
+grid.arrange(plot1, plot2, ncol = 2)
+
+# make coordinates for grid (as we did for test data)
+coordinates(grid)<- ~ x.meter + y.meter
+
+# fit the model for the krig object (grid) and use model fit from corresponding model data above
+test.krig<-krige(d15N~x.meter+y.meter, krig.RK, grid, model=vario.fit)
+
+RK.isoscape<-test.krig %>% as.data.frame %>%
+  ggplot(aes(x=x.meter, y=y.meter)) + geom_tile(aes(fill=var1.pred)) + coord_equal() +
+  scale_fill_gradient(low = "yellow", high="red") +
+  ggtitle("RK isoscape") +
+  scale_x_continuous(labels=comma) + scale_y_continuous(labels=comma) +
+  theme_bw()
+
+grid.arrange(AK.isoscape, RK.isoscape, ncol = 2)
+dev.copy(pdf, "figures/isoscape.plots.pdf", width=7, height=7, encod="MacRoman")
+dev.off()
 
 ```
+
+
+
+### Testing Kriging
+```{r, kriging test}
+
+################################################
+
+# load data
+krig<-read.csv("data/kriging.test.csv")
+
+# simulate data
+krig <- krig %>% 
+  mutate(d15N.ex = as.numeric(rnorm(n=166, mean=2, sd=3)))
+
+# just AK site
+krig.AK<- krig %>% filter(site=="AK")
+
+# example map with 
+krig.AK %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter)) + geom_point(aes(size=d15N.ex), color="forestgreen", alpha=3/4) + 
+  ggtitle("d15N simulated (permil)") + coord_equal() + theme_bw()
+
+
+# convert to spatial data, now a SPDF class object with 5 data slots
+coordinates(krig.AK)<- ~x.meter + y.meter
+str(krig.AK)
+# data: contains all the variables associated with different spatial locations
+# coords slot:  a matrix of all spatial locations with corresponding values
+# bbox:  the bounding box or the 4 corners denoting spatial extent
+# proj4string: projection inform. ie., what are the coordinates in?
+
+# can coerce back to dataframe for plotting etc
+# krig.AK<-krig.AK %>% as.data.frame %>% glimpse
+
+
+##### VARIOGRAM, must be the SPDF object
+# variogram function can take two arguments: 
+# first: how one or more variables interact spatially
+# second: SPDF object where those variables reside.
+
+
+# no trend variogram
+# example: variogram(log(zinc)~1, meuse)
+vario.notrend <- variogram(d15N.ex~1, krig.AK)
+
+# residual variogram w.r.t. a linear trend:
+# example variogram(log(zinc)~x+y, meuse)
+vario.resid <- variogram(d15N.ex~x.meter+y.meter, krig.AK) # calculates sample variogram values
+
+# directional variogram:
+# example: variogram(log(zinc)~x+y, meuse, alpha=c(0,45,90,135))
+# example: variogram(log(zinc)~1, meuse, width=90, cutoff=1300)
+vario.dir1 <- variogram(d15N.ex~x.meter+y.meter, krig.AK, alpha=c(0,45,90,135))
+vario.dir2 <- variogram(d15N.ex~1, krig.AK, width=90, cutoff=1300)
+
+
+######### fitting the variogram 
+# first: variogram testing
+# second: model with parameters to be fit to sample variogram
+vario.fit <- fit.variogram(vario.resid, model=vgm(1, "Sph", 900, 1)) # fit model
+
+plot(vario.resid, vario.fit) # plot the sample values, along with the fit model
+
+
+##########################
+# Kriging 
+
+# need to make a grid to match where kriging/estimation is done
+
+grid<-makegrid(krig.AK, n=1000)
+colnames(grid)<-c('x.meter', 'y.meter')
+grid<-as.data.frame(grid)
+
+#where we have measurements
+plot1 <- krig.AK %>% as.data.frame %>%
+  ggplot(aes(x.meter, y.meter)) + geom_point(size=1) + coord_equal() + 
+  ggtitle("Points with measurements")
+
+# where we WANT measurements
+plot2 <- grid %>% as.data.frame %>%
+  ggplot(aes(x.meter, y.meter)) + geom_point(size=0.5) + coord_equal() + 
+  ggtitle("Points at which to estimate")
+
+#### make the plots
+grid.arrange(plot1, plot2, ncol = 2)
+
+# Once we have the prepared all of the above, we are now ready to krige. This can be done with the gstat::krige function, which usually takes four arguments:
+# The model formula.
+#  An SPDF of the spatial domain that has measurements.
+#  An SPDF of the spatial domain to krige over.
+#  A variogram model fitted to the data.
+# Note that the second and third arguments have to be SPDF’s and cannot just be dataframes.
+
+
+# make coordinates for grid (as we did for test data)
+coordinates(grid)<- ~ x.meter + y.meter
+
+# fit the model for the krig object (grid) and use model fit from corresponding model data above
+test.krig<-krige(d15N.ex~1, krig.AK, grid, model=vario.fit)
+
+test.krig %>% as.data.frame %>%
+  ggplot(aes(x=x.meter, y=y.meter)) + geom_tile(aes(fill=var1.pred)) + coord_equal() +
+  scale_fill_gradient(low = "yellow", high="red") +
+  scale_x_continuous(labels=comma) + scale_y_continuous(labels=comma) +
+  theme_bw()
+```
+
+
 
 ```{r}
 
