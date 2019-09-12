@@ -141,7 +141,6 @@ dev.copy(pdf, "figures/scatter.data.pdf", width=7, height=4, encod="MacRoman")
 dev.off()
 
 
-
 ## make some means and SE
 d13C.m<-aggregate(d13C~Plot+Sample, data=iso.dat, mean)
 d15N.m<-aggregate(d15N~Plot+Sample, data=iso.dat, mean)
@@ -197,6 +196,19 @@ plot_grid(d13C.plot, d15N.plot, TC.plot, TN.plot,
      labels=c('a', 'b', 'c', 'd'), label_size=10, hjust=-1, vjust= 3, ncol=2, nrow=2)
 dev.copy(pdf, "figures/mean.data.plots.pdf", width=7, height=7, encod="MacRoman")
 dev.off()
+
+# quick significant test
+
+plant.lm<-lm(d13C~Plot*Sample, data=iso.dat)
+plant.av<-(aov(plant.lm)); summary(plant.av)
+plot(allEffects(plant.lm))
+tukey<-TukeyHSD(plant.av)
+
+plant.lm<-lm(d15N~Plot*Sample, data=iso.dat)
+plant.av<-(aov(plant.lm)); summary(plant.av)
+plot(allEffects(plant.lm))
+tukey<-TukeyHSD(plant.av)
+
 ```
 
 ```{r}
@@ -210,119 +222,108 @@ data.merge<-as.data.frame(join_all(list(iso.dat, krig), by = "Position.point", t
 data.merge<-data.merge[c(-167:-194),] # drop NAs where no samples taken
 scape.data<-data.merge
 
+#################
+################# make site maps based on bubble plots
+
 # just AK site
 krig.AK<- scape.data %>% filter(Plot=="AK")
 
-# example map with 
 AK.map<-krig.AK %>% as.data.frame %>% 
-  ggplot(aes(x.meter, y.meter)) + geom_point(aes(size=d15N), color="forestgreen", alpha=3/4) + 
+  ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d15N, color=Sample), alpha=3/4) + 
   ggtitle("AK plot--d15N (permil)") + coord_equal() + theme_bw()
 
 # just RK site
 krig.RK<- scape.data %>% filter(Plot=="RK")
-
-# example map with 
+ 
 RK.map<-krig.RK %>% as.data.frame %>% 
-  ggplot(aes(x.meter, y.meter)) + geom_point(aes(size=d15N), color="dodgerblue", alpha=3/4) +
+  ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d15N, color=Sample), alpha=3/4) +
   ggtitle("RK plot--d15N (permil)") + coord_equal() + theme_bw()
 
-
 plot_grid(RK.map, AK.map, ncol=2, nrow=1)
-dev.copy(pdf, "figures/dot.scape.pdf", width=7, height=4, encod="MacRoman")
+dev.copy(pdf, "figures/dot.scape.pdf", width=9, height=4, encod="MacRoman")
 dev.off()
 
+#####################
+#####################
 
+## Krig AK site d13C
 coordinates(krig.AK)<- ~x.meter + y.meter
-str(krig.AK)
-vario.dir1 <- variogram(d15N~x.meter+y.meter, krig.AK, alpha=c(0,45,90,135))
+col.scheme.C <- colorRampPalette(c('coral', 'cadetblue2', 'gray5'))(5)
+col.scheme.N <- colorRampPalette(c('coral', 'darkseagreen2', 'gray5'))(5)
 
-vario.dir2 <- variogram(d15N~1, krig.AK, width=90, cutoff=1300)
-vario.fit <- fit.variogram(vario.dir2, vgm(1, "Sph", 900, 1)) # fit model
-plot(vario.resid, vario.fit) # plot the sample values, along with the fit model
+Grid.AK <- spsample(krig.AK, type='regular', n=1e5)
+gridded(Grid.AK) <- TRUE
 
+## d13C plot
+d13C.krig.AK <- krige(d13C ~ 1, krig.AK, Grid.AK)
+plotd13C.krig.AK<-spplot(d13C.krig.AK["var1.pred"], col.regions=colorRampPalette(col.scheme.C), 
+       main=expression(paste(delta^{13}, C, "--AK (Afforested Koa Plot)")), coord)
 
+## d15N plot
+d15N.krig.AK <- krige(d15N ~ 1, krig.AK, airGrid)
+plotd15N.krig.AK<-spplot(d15N.krig.AK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
 
+plot_grid(plotd13C.krig.AK, plotd15N.krig.AK, ncol=2, nrow=1)
+dev.copy(pdf, "figures/AK.krig.pdf", width=8, height=4, encod="MacRoman")
+dev.off()
 
-# Kriging 
+#####################
+#####################
 
-# need to make a grid to match where kriging/estimation is done
-grid<-makegrid(krig.AK, n=2000)
-colnames(grid)<-c('x.meter', 'y.meter')
-grid<-as.data.frame(grid)
-
-#where we have measurements
-plot1 <- krig.AK %>% as.data.frame %>%
-  ggplot(aes(x.meter, y.meter)) + geom_point(size=1) + coord_equal() + 
-  ggtitle("Points with measurements")
-
-# where we WANT measurements
-plot2 <- grid %>% as.data.frame %>%
-  ggplot(aes(x.meter, y.meter)) + geom_point(size=0.5) + coord_equal() + 
-  ggtitle("Points at which to estimate")
-
-#### make the plots
-grid.arrange(plot1, plot2, ncol = 2)
-
-# make coordinates for grid (as we did for test data)
-coordinates(grid)<- ~ x.meter + y.meter
-
-# fit the model for the krig object (grid) and use model fit from corresponding model data above
-test.krig<-krige(d15N~x.meter+y.meter, krig.AK, grid, model=vario.fit)
-
-AK.isoscape<- test.krig %>% as.data.frame %>%
-  ggplot(aes(x=x.meter, y=y.meter)) + geom_tile(aes(fill=var1.pred)) + coord_equal() +
-  scale_fill_gradient(low = "yellow", high="red") +
-  ggtitle("AK isoscape") +
-  scale_x_continuous(labels=comma) + scale_y_continuous(labels=comma) +
-  theme_bw()
-
-
-
-#######
+## Krig RK site d13C
 coordinates(krig.RK)<- ~x.meter + y.meter
-str(krig.RK)
+GridRK <- spsample(krig.RK, type='regular', n=1e5)
+gridded(GridRK) <- TRUE
 
-grid<-makegrid(krig.RK, n=2000)
-colnames(grid)<-c('x.meter', 'y.meter')
-grid<-as.data.frame(grid)
+## d13C plot
+d13C.krig.RK <- krige(d13C ~ 1, krig.RK, GridRK)
+plotd13C.krig.RK<-spplot(d13C.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.C), 
+       main=expression(paste(delta^{13}, C, "--RK (Remnant Koa Plot)")))
 
-#where we have measurements
-plot1 <- krig.RK %>% as.data.frame %>%
-  ggplot(aes(x.meter, y.meter)) + geom_point(size=1) + coord_equal() + 
-  ggtitle("Points with measurements")
+## d15N plot
+d15N.krig.RK <- krige(d15N ~ 1, krig.RK, airGrid)
+plotd15N.krig.RK<-spplot(d15N.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
 
-# where we WANT measurements
-plot2 <- grid %>% as.data.frame %>%
-  ggplot(aes(x.meter, y.meter)) + geom_point(size=0.5) + coord_equal() + 
-  ggtitle("Points at which to estimate")
-
-#### make the plots
-grid.arrange(plot1, plot2, ncol = 2)
-
-# make coordinates for grid (as we did for test data)
-coordinates(grid)<- ~ x.meter + y.meter
-
-# fit the model for the krig object (grid) and use model fit from corresponding model data above
-test.krig<-krige(d15N~x.meter+y.meter, krig.RK, grid, model=vario.fit)
-
-RK.isoscape<-test.krig %>% as.data.frame %>%
-  ggplot(aes(x=x.meter, y=y.meter)) + geom_tile(aes(fill=var1.pred)) + coord_equal() +
-  scale_fill_gradient(low = "yellow", high="red") +
-  ggtitle("RK isoscape") +
-  scale_x_continuous(labels=comma) + scale_y_continuous(labels=comma) +
-  theme_bw()
-
-grid.arrange(AK.isoscape, RK.isoscape, ncol = 2)
-dev.copy(pdf, "figures/isoscape.plots.pdf", width=7, height=7, encod="MacRoman")
+plot_grid(plotd13C.krig.RK, plotd15N.krig.RK, ncol=2, nrow=1)
+dev.copy(pdf, "figures/RK.krig.pdf", width=6, height=4, encod="MacRoman")
 dev.off()
 
 ```
 
 
+```{r}
+#####################
+#####################
 
+## Krig RK site d13C
+# subset only koa
+
+## d13C plot
+d13C.krig.RK <- krige(d13C ~ 1, krig.RK, airGrid)
+plotd13C.krig.RK<-spplot(d13C.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.C), 
+       main=expression(paste(delta^{13}, C, "--RK (Remnant Koa Plot)")))
+
+## d15N plot
+d15N.krig.RK <- krige(d15N ~ 1, krig.RK, airGrid)
+plotd15N.krig.RK<-spplot(d15N.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
+
+plot_grid(plotd13C.krig.RK, plotd15N.krig.RK, ncol=2, nrow=1)
+dev.copy(pdf, "figures/RK.krig.pdf", width=6, height=4, encod="MacRoman")
+dev.off()
+
+```
+```
+
+
+
+
+
+
+```{r, kriging test, include=FALSE}
 ### Testing Kriging
-```{r, kriging test}
-
 ################################################
 
 # load data
