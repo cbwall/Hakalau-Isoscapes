@@ -197,17 +197,80 @@ plot_grid(d13C.plot, d15N.plot, TC.plot, TN.plot,
 dev.copy(pdf, "figures/mean.data.plots.pdf", width=7, height=7, encod="MacRoman")
 dev.off()
 
-# quick significant test
 
-plant.lm<-lm(d13C~Plot*Sample, data=iso.dat)
-plant.av<-(aov(plant.lm)); summary(plant.av)
-plot(allEffects(plant.lm))
-tukey<-TukeyHSD(plant.av)
+#########
+# models
 
-plant.lm<-lm(d15N~Plot*Sample, data=iso.dat)
-plant.av<-(aov(plant.lm)); summary(plant.av)
-plot(allEffects(plant.lm))
-tukey<-TukeyHSD(plant.av)
+## tests for assumptions
+for(i in c(8:10,12:15)){
+  Y<-iso.dat[,i]
+  full<-lm(Y~Plot*Sample, data=iso.dat, na.action=na.exclude)
+  R <- resid(full) #save glm residuals
+ 
+  op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
+  plot(full, add.smooth = FALSE, which=1)
+  QQ <- qqnorm(R, main = colnames(iso.dat)[i]) 
+  QQline <- qqline(R)
+  hist(R, xlab="Residuals", main = colnames(iso.dat)[i])
+  plot(iso.dat$Plot, R, xlab=colnames(iso.dat)[i], ylab="Residuals")
+  plot(iso.dat$Sample, R, xlab=colnames(iso.dat)[i], ylab="Residuals")
+}
+
+######## ######## 
+######## Carbon isotopes
+
+d13C.lm<-lm(d13C~Plot*Sample, data=iso.dat)
+d13C.av<-(aov(d13C.lm)); summary(d13C.av) # Plot and Sample effects
+plot(allEffects(d13C.lm)) # 2-way interaction
+plot(allEffects(lm(d13C~Plot+Sample, data=iso.dat))) # main effects
+
+tukey<-TukeyHSD(d13C.av); tukey
+# d13C: Plots differ (Ak vs Rk), Samples differ (as expected)
+# posthocs of plot:sample (without main effects)....
+# show: Rk koa:Ak koa (sign.), Rk soil:Ak soil (sign.), Ak Rub:Rk Rub (signif.), 
+# but koa and Rubus not different from each other in either plots
+
+# main effects-- all plants the same, but differnt from soil
+
+######## ######## 
+######## Nitrogen isotopes
+
+d15N.lm<-lm(d15N~Plot*Sample, data=iso.dat)
+d15N.av<-(aov(d15N.lm)); summary(d15N.av) # Plot and Sample effects
+plot(allEffects(d15N.lm)) # 2-way interaction
+plot(allEffects(lm(d15N~Plot+Sample, data=iso.dat))) # main effects
+
+tukey<-TukeyHSD(d15N.av); tukey
+# d15N: Plots differ (Ak vs Rk), Samples differ (as expected)
+# posthocs of plot:samples (without main effects)...
+# show: 
+# Rk koa:Ak koa (NOT sign.),  Rk soil:Ak soil (NOT sign.), Ak Rub:Rk Rub (sign.)
+
+# main effects-- Koa diff invasive Rubus, but not native one
+
+######## ######## 
+######## Carbon content
+
+TC.lm<-lm(Total.C..mmol.gdw~Plot*Sample, data=iso.dat)
+TC.av<-(aov(TC.lm)); summary(TC.av) # Sample and Plot effects
+plot(allEffects(lm(Total.C..mmol.gdw~Plot + Sample, data=iso.dat))) # higher in RK and Koa
+tukey<-TukeyHSD(TC.av); tukey
+
+######## ######## 
+######## Nitrogen content
+
+TN.lm<-lm(Total.N..mmol.gdw~Plot*Sample, data=iso.dat)
+TN.av<-(aov(TN.lm)); summary(TN.av) # Sample effects
+plot(allEffects(lm(Total.N..mmol.gdw~Sample, data=iso.dat))) # main effects
+tukey<-TukeyHSD(TN.av); tukey
+
+######## ######## 
+######## Nitrogen content
+
+CN.lm<-lm(C.N~Plot*Sample, data=iso.dat)
+CN.av<-(aov(CN.lm)); summary(CN.av) # Plot Sample effects
+plot(allEffects(lm(C.N~Plot +Sample, data=iso.dat))) # main effects
+tukey<-TukeyHSD(CN.av); tukey
 
 ```
 
