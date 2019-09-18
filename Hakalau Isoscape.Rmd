@@ -34,6 +34,7 @@ library("dplyr") # for "glimpse"
 library("ggplot2")
 library("scales") # for "comma"
 library("magrittr")
+library("plyr")
 })
 ```
 
@@ -121,8 +122,29 @@ dev.off()
 #### Isotope data
 ```{r, isotope data}
 iso.dat<-read.csv("data/Hakalau.isotopes.csv")
+
+# DBH for trees with single trunk
+DBH.single <-
+
+
+# DBH for trees with multiple trunks
+iso.dat$DBH1<-(iso.dat$DBH..cm.1^2)
+iso.dat$DBH2<-(iso.dat$DBH..cm.2^2)
+iso.dat$DBH3<-(iso.dat$DBH..cm.3^2)
+iso.dat$DBH4<-(iso.dat$DBH..cm.4^2)
+iso.dat$DBH5<-(iso.dat$DBH..cm.5^2)
+
+# replace NAs with zeros to solve sqrt problem
+iso.dat<- iso.dat %>%
+  mutate_each(funs(replace(., which(is.na(.)), 0)))
+
+# sqrt and sum the sum of squares for individual trunk DBH
+iso.dat$DBH.Total<-sqrt(iso.dat$DBH1 + iso.dat$DBH2 + iso.dat$DBH3 + iso.dat$DBH4 + iso.dat$DBH5)
+
+
 iso.data<- iso.dat %>%
-  select(c(Plot, Sample, d15N, d13C, Total.N..mmol.gdw, Total.C..mmol.gdw, C.N))
+  select(c(Plot, Sample, d15N, d13C, Total.N..mmol.gdw, Total.C..mmol.gdw, C.N, DBH.Total))
+
 
 iso.scatter<-ggplot(data=iso.dat, aes(x=d13C, y=d15N, color=Plot, shape=Sample))+
   geom_point(cex=1.5) +
@@ -275,9 +297,8 @@ tukey<-TukeyHSD(CN.av); tukey
 ```
 
 ```{r}
-library(plyr)
 # load data
-krig<-read.csv("data/kriging.test.csv") # matrix of points for isoscape grid
+krig<-read.csv("data/kriging.matrix.csv") # matrix of points for isoscape grid
 
 # merge kriging data with isotope data
 data.merge<-as.data.frame(join_all(list(iso.dat, krig), by = "Position.point", type='full'))
@@ -309,10 +330,76 @@ dev.off()
 #####################
 #####################
 
+## Krig AK site 
+coordinates(krig.AK)<- ~x.meter + y.meter
+col.scheme.N <- colorRampPalette(c('red', 'darkseagreen2', 'gray5'))(5)
+
+Grid.AK <- spsample(krig.AK, type='regular', n=1e5)
+gridded(Grid.AK) <- TRUE
+
+## d15N full plot
+d15N.krig.AK <- krige(d15N ~ 1, krig.AK, Grid.AK) # ordinary kriging
+plot(variogram(d15N ~ 1, krig.AK)) # variogram
+
+plotd15N.krig.AK<-spplot(d15N.krig.AK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
+
+#####################
+## Krig RK site
+coordinates(krig.RK)<- ~x.meter + y.meter
+GridRK <- spsample(krig.RK, type='regular', n=1e5)
+gridded(GridRK) <- TRUE
+
+## d15N plot
+d15N.krig.RK <- krige(d15N ~ 1, krig.RK)
+plot(variogram(d15N ~ 1, krig.AK))
+
+plotd15N.krig.RK<-spplot(d15N.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
+
+#####################
+### combined Ak-Rk krig d15N plot 
+plot_grid(plotd15N.krig.RK, plotd15N.krig.AK, ncol=2, nrow=1)
+dev.copy(pdf, "figures/RKAK.d15N.krig.pdf", width=7, height=4, encod="MacRoman")
+dev.off()
+
+```
+
+```{r}
+
+## d15N koa plot
+krig.AK<- scape.data %>% filter(Plot=="AK") # just AK
+
+KOA.AK<-  krig.AK %>%
+  mutate(d15N=replace(d15N, Sample=="Soil" | Sample=="RUBARG" | Sample=="RUBHAW", NA)) # leave only Koa
+
+coordinates(KOA.AK)<- ~x.meter + y.meter # coordinate system
+Grid.KOA.AK <- spsample(KOA.AK, type='regular', n=1e5)
+gridded(Grid.KOA.AK) <- TRUE
+
+d15N.KOA.AK <- krige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
+plot(variogram(d15N ~ 1, KOA.AK)) # variogram
+
+plotd15N.koa.krig.AK<-spplot(d15N.KOA.AK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
+
+
+
+koa.RK<-  krig.RK %>%
+  mutate(d15N=replace(d15N, Sample=="Soil", NA))
+
+
+```
+
+
+```{r, eval=FALSE}
+#####################
+# Carbon kriging, leave alone for now.
+#####################
+
 ## Krig AK site d13C
 coordinates(krig.AK)<- ~x.meter + y.meter
 col.scheme.C <- colorRampPalette(c('coral', 'cadetblue2', 'gray5'))(5)
-col.scheme.N <- colorRampPalette(c('coral', 'darkseagreen2', 'gray5'))(5)
 
 Grid.AK <- spsample(krig.AK, type='regular', n=1e5)
 gridded(Grid.AK) <- TRUE
@@ -320,19 +407,7 @@ gridded(Grid.AK) <- TRUE
 ## d13C plot
 d13C.krig.AK <- krige(d13C ~ 1, krig.AK, Grid.AK)
 plotd13C.krig.AK<-spplot(d13C.krig.AK["var1.pred"], col.regions=colorRampPalette(col.scheme.C), 
-       main=expression(paste(delta^{13}, C, "--AK (Afforested Koa Plot)")), coord)
-
-## d15N plot
-d15N.krig.AK <- krige(d15N ~ 1, krig.AK, airGrid)
-plotd15N.krig.AK<-spplot(d15N.krig.AK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
-       main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
-
-plot_grid(plotd13C.krig.AK, plotd15N.krig.AK, ncol=2, nrow=1)
-dev.copy(pdf, "figures/AK.krig.pdf", width=8, height=4, encod="MacRoman")
-dev.off()
-
-#####################
-#####################
+       main=expression(paste(delta^{13}, C, "--AK (Afforested Koa Plot)")))
 
 ## Krig RK site d13C
 coordinates(krig.RK)<- ~x.meter + y.meter
@@ -344,38 +419,6 @@ d13C.krig.RK <- krige(d13C ~ 1, krig.RK, GridRK)
 plotd13C.krig.RK<-spplot(d13C.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.C), 
        main=expression(paste(delta^{13}, C, "--RK (Remnant Koa Plot)")))
 
-## d15N plot
-d15N.krig.RK <- krige(d15N ~ 1, krig.RK, airGrid)
-plotd15N.krig.RK<-spplot(d15N.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
-       main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
-
-plot_grid(plotd13C.krig.RK, plotd15N.krig.RK, ncol=2, nrow=1)
-dev.copy(pdf, "figures/RK.krig.pdf", width=6, height=4, encod="MacRoman")
-dev.off()
-
-```
-
-
-```{r}
-#####################
-#####################
-
-## Krig RK site d13C
-# subset only koa
-
-## d13C plot
-d13C.krig.RK <- krige(d13C ~ 1, krig.RK, airGrid)
-plotd13C.krig.RK<-spplot(d13C.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.C), 
-       main=expression(paste(delta^{13}, C, "--RK (Remnant Koa Plot)")))
-
-## d15N plot
-d15N.krig.RK <- krige(d15N ~ 1, krig.RK, airGrid)
-plotd15N.krig.RK<-spplot(d15N.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
-       main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
-
-plot_grid(plotd13C.krig.RK, plotd15N.krig.RK, ncol=2, nrow=1)
-dev.copy(pdf, "figures/RK.krig.pdf", width=6, height=4, encod="MacRoman")
-dev.off()
 
 ```
 ```
