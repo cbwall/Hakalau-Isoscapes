@@ -119,38 +119,70 @@ dev.off()
 
 ```
 
-#### Isotope data
+#### Ecology and Isotopes data
 ```{r, isotope data}
-iso.dat<-read.csv("data/Hakalau.isotopes.csv")
+Hak.df<-read.csv("data/Hakalau.isotopes.csv")
 
-# DBH for trees with single trunk
-DBH.single <-
+########## DBH 
+DBH.df<- Hak.df %>%
+  select(c(DBH..cm.1, DBH..cm.2, DBH..cm.3, DBH..cm.4, DBH..cm.5))
 
-
-# DBH for trees with multiple trunks
-iso.dat$DBH1<-(iso.dat$DBH..cm.1^2)
-iso.dat$DBH2<-(iso.dat$DBH..cm.2^2)
-iso.dat$DBH3<-(iso.dat$DBH..cm.3^2)
-iso.dat$DBH4<-(iso.dat$DBH..cm.4^2)
-iso.dat$DBH5<-(iso.dat$DBH..cm.5^2)
-
-# replace NAs with zeros to solve sqrt problem
-iso.dat<- iso.dat %>%
+# replace NAs with zeros
+DBH.df<- DBH.df %>%
   mutate_each(funs(replace(., which(is.na(.)), 0)))
 
-# sqrt and sum the sum of squares for individual trunk DBH
-iso.dat$DBH.Total<-sqrt(iso.dat$DBH1 + iso.dat$DBH2 + iso.dat$DBH3 + iso.dat$DBH4 + iso.dat$DBH5)
+# if only one trunk, then make new column and report this value
+DBH.df <- DBH.df %>%
+  mutate(DBH.1trunk = ifelse(DBH..cm.2>"0", 0, DBH..cm.1))
 
+# if multiple trunks, sum of squares and square root all trunks
+# and plug in the DBH for single trunks
+DBH.df <- DBH.df %>%
+  mutate(DBH.Total = ifelse(DBH.1trunk=="0",  
+                     sqrt(DBH..cm.1^2 + DBH..cm.2^2 + DBH..cm.3^2 + DBH..cm.4^2 + DBH..cm.5^2), DBH.1trunk))
 
-iso.data<- iso.dat %>%
-  select(c(Plot, Sample, d15N, d13C, Total.N..mmol.gdw, Total.C..mmol.gdw, C.N, DBH.Total))
+# replace zeros with NA now that total DBH has been calculated
+DBH.df$DBH.Total<-as.numeric(ifelse(DBH.df$DBH.Total=="0", "NA", DBH.df$DBH.Total))
 
+############ Canopy diameter
+# use area of an elipse, a x b x π, where a and b are major and minor radius
+Can.df<-Hak.df %>%
+  select(c(canopy.0..m, canopy.90..m, canopy.180..m, canopy.270..m))
 
+# Major radius is the average of 0 and 180 degrees
+Can.df<- Can.df %>% 
+  mutate(Maj.rad = rowMeans(cbind(canopy.0..m, canopy.180..m), na.rm=T))
+
+# Minor radius is the average of 90 and 270 degrees
+Can.df<- Can.df %>% 
+  mutate(Min.rad = rowMeans(cbind(canopy.90..m, canopy.270..m), na.rm=T))
+
+# Elipse area
+Can.df<- Can.df %>% 
+  mutate(Canopy.area = ifelse(Maj.rad>0, Maj.rad*Min.rad*3.14, "NA"))
+
+########################
+# combine DBH.Total and Canopy.area with isotope dataframe and reduce columns
+Hak.df$DBH.Total<-DBH.df$DBH.Total
+Hak.df$Canopy.area<-Can.df$Canopy.area
+
+# iso.data is the full dataframe
+iso.data<- Hak.df %>%
+  select(c(Plot, Sample, DBH.Total, Canopy.area, d15N, d13C, N..percent, Total.N..mmol.gdw, C..percent, Total.C..mmol.gdw, C.N))
+
+########################
+########################
+########################
+
+# test plots
+
+### Scatter of d13C vs. d15N
 iso.scatter<-ggplot(data=iso.dat, aes(x=d13C, y=d15N, color=Plot, shape=Sample))+
   geom_point(cex=1.5) +
   xlab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))) +
   ylab(expression(paste(delta^{15}, N, " (\u2030, air)"))) 
 
+### Scatter of total C vs. total N
 total.nut<-ggplot(data=iso.dat, aes(x=Total.C..mmol.gdw, y=Total.N..mmol.gdw, color=Plot, shape=Sample))+
   geom_point(cex=1.5) +
   xlab("total Carbon") +
@@ -161,8 +193,102 @@ plot_grid(iso.scatter, total.nut,
      labels=c('a', 'b'), label_size=10, hjust=-1, vjust= 3, ncol=2, nrow=1)
 dev.copy(pdf, "figures/scatter.data.pdf", width=7, height=4, encod="MacRoman")
 dev.off()
+```
 
 
+```{r, d15N and DBH and Canopy}
+######## plot of d15N and DBH, and d15N and Canopy area
+
+# all samples
+
+par(mfrow=c(1,2), mar=c(4,5,1,1))
+
+#### DBH
+mod.DBH<-lm(d15N~DBH.Total+Plot, data=iso.data)
+int<-coef(summary(mod.DBH))[1]
+DBH.slope<-coef(summary(mod.DBH))["DBH.Total",1] # DBH (slope for all figures)
+RK.int<-coef(summary(mod.DBH))["PlotRK",1] # RK, AK = 0
+
+
+    # no significant relationship to d15N but a trend for DECREASE with DBH
+plot(d15N~DBH.Total, data=iso.data,
+    col=c("salmon","lightseagreen")[as.factor(Plot)],
+    pch=c(1,2)[as.factor(Plot)],
+    ylab=expression(paste(delta^{15}, N, " (\u2030, air)")),
+    xlab="DBH (cm)",
+    ylim=c(0,5), xlim=c(0,60))
+    ablineclip(int, DBH.slope, col="coral", lwd=2, 
+               x1 = min(iso.data$DBH.Total[iso.data$Plot=="AK"], na.rm=T), 
+               x2 = max(iso.data$DBH.Total[iso.data$Plot=="AK"], na.rm=T)) # AK model
+    ablineclip((int+ RK.int), DBH.slope, col="lightseagreen", lwd=2, 
+               x1 = min(iso.data$DBH.Total[iso.data$Plot=="RK"], na.rm=T), 
+               x2 = max(iso.data$DBH.Total[iso.data$Plot=="RK"], na.rm=T)) # RK model
+
+    
+#### Canopy
+mod.Can<-lm(d15N~Canopy.area+Plot, data=iso.data)
+int<-coef(summary(mod.DBH))[1]
+Can.slope<-coef(summary(mod.Can))["Canopy.area",1] # DBH (slope for all figures)
+RK.int<-coef(summary(mod.Can))["PlotRK",1] # RK, AK = 0
+
+# no significant relationship to d15N but a trend for INCREASE with canopy area
+plot(d15N~Canopy.area, data=iso.data, yaxt="n",
+     col=c("salmon","lightseagreen")[as.factor(Plot)],
+     pch=c(1,2)[as.factor(Plot)],
+     xlab=expression(paste("Canopy (m"^2,")")),
+     ylab="", 
+     ylim=c(0,5), xlim=c(0,80))
+     axis(side=2, labels=F)
+     ablineclip(int, Can.slope, col="salmon", lwd=2, 
+               x1 = min(iso.data$Canopy.area[iso.data$Plot=="AK"], na.rm=T), 
+               x2 = max(iso.data$Canopy.area[iso.data$Plot=="AK"], na.rm=T)) # AK model
+     ablineclip((int+ RK.int), Can.slope, col="lightseagreen", lwd=2, 
+               x1 = min(iso.data$Canopy.area[iso.data$Plot=="RK"], na.rm=T), 
+               x2 = max(iso.data$Canopy.area[iso.data$Plot=="RK"], na.rm=T)) # RK model
+     legend("topright", legend=levels(iso.data$Plot), box.lty=0, bg="transparent", lty=1, pch=c(1,2), 
+            col=c("salmon", "lightseagreen"), cex=1)
+
+dev.copy(pdf, "figures/d15N.DBH.Canopy.pdf", width=7, height=5, encod="MacRoman")
+dev.off()
+```
+
+```{r mean plots for DBH and Canopy}
+DBH.m<-aggregate(DBH.Total~Plot, data=iso.data, mean)
+Can.m<-aggregate(Canopy.area~Plot, data=iso.data, mean)
+
+DBH.SE<-aggregate(DBH.Total~Plot, data=iso.data, std.error)
+Can.SE<-aggregate(Canopy.area~Plot, data=iso.data, std.error)
+
+mean.eco<-cbind(DBH.m, Can.m[2], DBH.SE[2], Can.SE[2]); colnames(mean.eco)<-c("Plot", "DBH", "Can", "D.SE", "C.SE")
+
+# format #
+BW.back<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+### DBH plot of mean/SE by plot
+DBH.plot<-ggplot(data=mean.eco, aes(x=Plot, y=DBH))+
+  geom_bar(stat="identity", position = pd, width=0.7, fill="lightsalmon", alpha=0.7)+
+  geom_errorbar(aes(ymin=DBH-D.SE, ymax=DBH+D.SE), size=.5, width=0, position=pd) +
+  xlab("Plots") +
+  ylab("DBH (cm)") + BW.back
+
+### Canopy plot of mean/SE by plot
+Canopy.plot<-ggplot(data=mean.eco, aes(x=Plot, y=Can))+
+  geom_bar(stat="identity", position = pd, width=0.7, fill="lightseagreen", alpha=0.8)+
+  geom_errorbar(aes(ymin=Can-C.SE, ymax=Can+C.SE), size=.5, width=0, position=pd) +
+  xlab("Plots") +
+  ylab(expression(paste("Canopy (m"^2,")"))) + BW.back
+
+#  figures together
+plot_grid(DBH.plot, Canopy.plot,
+     labels=c('a', 'b'), label_size=10, hjust=-1, vjust= 3, ncol=2, nrow=1)
+dev.copy(pdf, "figures/DBHCanopy.means.pdf", width=7, height=4, encod="MacRoman")
+dev.off()
+
+
+```
+
+```{r, scatter plots of isotope data}
 ## make some means and SE
 d13C.m<-aggregate(d13C~Plot+Sample, data=iso.dat, mean)
 d15N.m<-aggregate(d15N~Plot+Sample, data=iso.dat, mean)
@@ -218,8 +344,10 @@ plot_grid(d13C.plot, d15N.plot, TC.plot, TN.plot,
      labels=c('a', 'b', 'c', 'd'), label_size=10, hjust=-1, vjust= 3, ncol=2, nrow=2)
 dev.copy(pdf, "figures/mean.data.plots.pdf", width=7, height=7, encod="MacRoman")
 dev.off()
+```
 
 
+```{r, stats on responses}
 #########
 # models
 
