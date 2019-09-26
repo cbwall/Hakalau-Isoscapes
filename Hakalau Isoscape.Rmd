@@ -594,6 +594,102 @@ plotd15N.koa.krig.AK2<-spplot(d15N.KOA.AK2["var1.pred"], col.regions=colorRampPa
        main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
 ```
 
+Just Rubus Hawaiiensis in AK 
+```{r}
+###### AK site
+
+## d15N Rubus plot
+krig.AK<- scape.data %>% filter(Plot=="AK") # just AK
+krig.AK$Sample<-factor(krig.AK$Sample, levels=c("Koa", "RUBHAW", "Soil"))
+
+RubHa.AK<-  krig.AK[c(krig.AK$Sample=="RUBHAW"),] #just Rubus Hawaiiensis
+coordinates(RubHa.AK)<- ~x.meter + y.meter # coordinate system
+
+# create a bubble plot with the random values
+bubble(RubHa.AK, zcol='d15N', fill=TRUE, do.sqrt=FALSE, maxsize=3)
+
+TheVariogram=variogram(d15N~1, data=RubHa.AK)
+plot(TheVariogram)
+
+TheVariogramModel <- vgm(psill=0.2, model="Gau", nugget=0.1, range=8)
+plot(TheVariogram, model=TheVariogramModel)
+
+FittedModel <- fit.variogram(TheVariogram, model=TheVariogramModel)
+
+plot(TheVariogram, model=FittedModel)
+
+# Create a "gstat" object
+TheGStat <- gstat(id="Sine", formula=d15N ~ 1, data=RubHa.AK)
+TheVariogram=variogram(TheGStat, map=TRUE, cutoff=4000, width=200)
+
+## the original data had a large north-south trend, check with a variogram map
+plot(TheVariogram, threshold=1)
+
+# Create directional variograms at 0, 45, 90, 135 degrees from north (y-axis)
+TheVariogram <- variogram(TheGStat, alpha=c(0,45,90,135))
+
+# Create a new model
+TheModel=vgm(model='Lin' , anis=c(0,0.5))
+
+# Fit a model to the variogram
+FittedModel <- fit.variogram(TheVariogram, model=TheModel)
+
+## plot results:
+plot(TheVariogram, model=FittedModel, as.table=TRUE)
+
+# update the gstat object:
+TheGStat <- gstat(TheGStat, id="Sine", model=FittedModel )
+
+# create sequences that represent the center of the columns of pixels
+# change "by" to change the resolution of the raster
+Columns=seq(from=1, to=35, by=0.1)
+
+# And the rows of pixels:
+Rows=seq(from=1, to=20, by=0.1)
+
+# Create a grid of "Pixels" using x as columns and y as rows
+Grid.RubHa.AK <- expand.grid(x=Columns,y=Rows)
+
+# Convert Thegrid to a SpatialPixel class
+coordinates(Grid.RubHa.AK) <- ~ x+y
+
+gridded(Grid.RubHa.AK) <- TRUE # Plot the grid and points
+
+
+plot(krig.AK$d15N, col=krig.AK$Sample, cex=0.8)
+legend("topleft", legend=levels(krig.AK$Sample), box.lty=0, bg="transparent", pch=1, 
+            col=c("black", "red", "green"), cex=1)
+title("Interpolation Grid and Sample Points")
+
+# perform ordinary kriging prediction:
+TheSurface <- predict(TheGStat, model=FittedModel, newdata=Grid.RubHa.AK)
+
+# Set the margins to 2
+par(mar=c(2,2,2,2))
+
+# Add the Kriged surface
+image(TheSurface, col=terrain.colors(20))
+
+# Add contours to the surface
+contour(TheSurface, add=TRUE, drawlabels=FALSE, col='brown')
+
+# Add the points
+points(RubHa.AK, pch=4, cex=0.5)
+
+# Set the title
+title('Prediction')
+
+##for the second plot
+d15N.RubHa.AK <- autoKrige(d15N ~ 1, RubHa.AK, Grid.RubHa.AK) # ordinary kriging
+plot(d15N.RubHa.AK)
+plot(variogram(d15N ~ 1, RubHa.AK)) # variogram
+
+d15N.RubHa.AK2 <- krige(d15N ~ 1, RubHa.AK, Grid.RubHa.AK) # ordinary kriging
+plotd15N.RubHa.krig.AK2<-spplot(d15N.RubHa.AK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--AK (Afforested RubHa Plot)")))
+```
+
+
 KOA only for RK site
 ```{r}
 ##############
@@ -681,6 +777,104 @@ plotd15N.koa.krig.RK<-spplot(d15N.KOA.RK2["var1.pred"], col.regions=colorRampPal
 plotd15N.koa.krig.RK
 
 ```
+
+
+Just Rubus Argutus in RK 
+```{r}
+###### RK site
+
+## d15N Rubus plot
+krig.RK<- scape.data %>% filter(Plot=="RK") # just RK
+krig.RK$Sample<-factor(krig.RK$Sample, levels=c("Koa", "RUBARG", "Soil"))
+
+RubAr.RK<-  krig.RK[c(krig.RK$Sample=="RUBARG"),] #just Rubus argutus
+coordinates(RubAr.RK)<- ~x.meter + y.meter # coordinate system
+
+# create a bubble plot with the random values
+bubble(RubAr.RK, zcol='d15N', fill=TRUE, do.sqrt=FALSE, maxsize=3)
+
+TheVariogram=variogram(d15N~1, data=RubAr.RK)
+plot(TheVariogram)
+
+TheVariogramModel <- vgm(psill=0.2, model="Gau", nugget=0.1, range=8)
+plot(TheVariogram, model=TheVariogramModel)
+
+FittedModel <- fit.variogram(TheVariogram, model=TheVariogramModel)
+
+plot(TheVariogram, model=FittedModel)
+
+# Create a "gstat" object
+TheGStat <- gstat(id="Sine", formula=d15N ~ 1, data=RubAr.RK)
+TheVariogram=variogram(TheGStat, map=TRUE, cutoff=4000, width=200)
+
+## the original data had a large north-south trend, check with a variogram map
+plot(TheVariogram, threshold=1)
+
+# Create directional variograms at 0, 45, 90, 135 degrees from north (y-axis)
+TheVariogram <- variogram(TheGStat, alpha=c(0,45,90,135))
+
+# Create a new model
+TheModel=vgm(model='Lin' , anis=c(0,0.5))
+
+# Fit a model to the variogram
+FittedModel <- fit.variogram(TheVariogram, model=TheModel)
+
+## plot results:
+plot(TheVariogram, model=FittedModel, as.table=TRUE)
+
+# update the gstat object:
+TheGStat <- gstat(TheGStat, id="Sine", model=FittedModel )
+
+# create sequences that represent the center of the columns of pixels
+# change "by" to change the resolution of the raster
+Columns=seq(from=1, to=20, by=0.1)
+
+# And the rows of pixels:
+Rows=seq(from=1, to=35, by=0.1)
+
+# Create a grid of "Pixels" using x as columns and y as rows
+Grid.RubAr.RK <- expand.grid(x=Columns,y=Rows)
+
+# Convert Thegrid to a SpatialPixel class
+coordinates(Grid.RubAr.RK) <- ~ x+y
+
+gridded(Grid.RubAr.RK) <- TRUE # Plot the grid and points
+
+
+plot(krig.RK$d15N, col=krig.RK$Sample, cex=0.8)
+legend("topleft", legend=levels(krig.RK$Sample), box.lty=0, bg="transparent", pch=1, 
+            col=c("black", "red", "green"), cex=1)
+title("Interpolation Grid and Sample Points")
+
+# perform ordinary kriging prediction:
+TheSurface <- predict(TheGStat, model=FittedModel, newdata=Grid.RubAr.RK)
+
+# Set the margins to 2
+par(mar=c(2,2,2,2))
+
+# Add the Kriged surface
+image(TheSurface, col=terrain.colors(20))
+
+# Add contours to the surface
+contour(TheSurface, add=TRUE, drawlabels=FALSE, col='brown')
+
+# Add the points
+points(RubAr.RK, pch=4, cex=0.5)
+
+# Set the title
+title('Prediction')
+
+##for the second plot
+d15N.RubAr.RK <- autoKrige(d15N ~ 1, RubAr.RK, Grid.RubAr.RK) # ordinary kriging
+plot(d15N.RubAr.RK)
+plot(variogram(d15N ~ 1, RubAr.RK)) # variogram
+
+d15N.RubAr.RK2 <- krige(d15N ~ 1, RubAr.RK, Grid.RubAr.RK) # ordinary kriging
+plotd15N.RubAr.krig.RK2<-spplot(d15N.RubAr.RK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--RK (Afforested RubAr Plot)")))
+```
+
+
 
 
 ```{r, eval=FALSE}
