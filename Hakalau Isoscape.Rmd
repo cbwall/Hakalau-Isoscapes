@@ -12,7 +12,7 @@ output:
     toc: yes
     toc_depth: '4'
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
@@ -26,6 +26,7 @@ library("SDMTools")
 library("rgdal")
 library("ggmap")
 library("gridExtra")
+library("automap")
 library("cowplot")
 library("sp")
 library("gstat")
@@ -426,7 +427,7 @@ tukey<-TukeyHSD(CN.av); tukey
 
 ```{r}
 # load data
-krig<-read.csv("data/kriging.matrix.csv") # matrix of points for isoscape grid
+krig<-read.csv("data/krig.matrix.csv") # matrix of points for isoscape grid
 
 # merge kriging data with isotope data
 data.merge<-as.data.frame(join_all(list(iso.dat, krig), by = "Position.point", type='full'))
@@ -494,14 +495,51 @@ dev.off()
 
 ```
 
+Subset data and only examine koa in the plots. 
 ```{r}
+###### AK site
 
 ## d15N koa plot
 krig.AK<- scape.data %>% filter(Plot=="AK") # just AK
+krig.AK$Sample<-factor(krig.AK$Sample, levels=c("Koa", "RUBHAW", "Soil"))
 
 KOA.AK<-  krig.AK[c(krig.AK$Sample=="Koa"),] #just Koa
-
 coordinates(KOA.AK)<- ~x.meter + y.meter # coordinate system
+
+# create a bubble plot with the random values
+bubble(KOA.AK, zcol='d15N', fill=TRUE, do.sqrt=FALSE, maxsize=3)
+
+TheVariogram=variogram(d15N~1, data=KOA.AK)
+plot(TheVariogram)
+
+TheVariogramModel <- vgm(psill=0.2, model="Gau", nugget=0.1, range=8)
+plot(TheVariogram, model=TheVariogramModel)
+
+FittedModel <- fit.variogram(TheVariogram, model=TheVariogramModel)
+
+plot(TheVariogram, model=FittedModel)
+
+# Create a "gstat" object
+TheGStat <- gstat(id="Sine", formula=d15N ~ 1, data=KOA.AK)
+TheVariogram=variogram(TheGStat, map=TRUE, cutoff=4000, width=200)
+
+## the original data had a large north-south trend, check with a variogram map
+plot(TheVariogram, threshold=1)
+
+# Create directional variograms at 0, 45, 90, 135 degrees from north (y-axis)
+TheVariogram <- variogram(TheGStat, alpha=c(0,45,90,135))
+
+# Create a new model
+TheModel=vgm(model='Lin' , anis=c(0,0.5))
+
+# Fit a model to the variogram
+FittedModel <- fit.variogram(TheVariogram, model=TheModel)
+
+## plot results:
+plot(TheVariogram, model=FittedModel, as.table=TRUE)
+
+# update the gstat object:
+TheGStat <- gstat(TheGStat, id="Sine", model=FittedModel )
 
 # create sequences that represent the center of the columns of pixels
 # change "by" to change the resolution of the raster
@@ -515,7 +553,37 @@ Grid.KOA.AK <- expand.grid(x=Columns,y=Rows)
 
 # Convert Thegrid to a SpatialPixel class
 coordinates(Grid.KOA.AK) <- ~ x+y
-gridded(Grid.KOA.AK) <- TRUE
+
+gridded(Grid.KOA.AK) <- TRUE # Plot the grid and points
+
+
+plot(krig.AK$d15N, col=krig.AK$Sample, cex=0.8)
+legend("topleft", legend=levels(krig.AK$Sample), box.lty=0, bg="transparent", pch=1, 
+            col=c("black", "red", "green"), cex=1)
+
+title("Interpolation Grid and Sample Points")
+
+# perform ordinary kriging prediction:
+TheSurface <- predict(TheGStat, model=FittedModel, newdata=Grid.KOA.AK)
+
+# Set the margins to 2
+par(mar=c(2,2,2,2))
+
+# Add the Kriged surface
+image(TheSurface, col=terrain.colors(20))
+
+# Add contours to the surface
+contour(TheSurface, add=TRUE, drawlabels=FALSE, col='brown')
+
+# Add the points
+points(KOA.AK, pch=4, cex=0.5)
+
+# Set the title
+title('Prediction')
+
+##for the second plot
+d15N.KOA.AK <- krige(d15N ~ 1,TheData , TheGrid) # ordinary kriging
+plot(d15N.KOA.AK)
 
 d15N.KOA.AK <- autoKrige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
 plot(d15N.KOA.AK)
@@ -524,13 +592,52 @@ plot(variogram(d15N ~ 1, KOA.AK)) # variogram
 d15N.KOA.AK2 <- krige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
 plotd15N.koa.krig.AK2<-spplot(d15N.KOA.AK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
        main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
+```
 
-
+KOA only for RK site
+```{r}
 ##############
 krig.RK<- scape.data %>% filter(Plot=="RK") # just RK
+krig.RK$Sample<-factor(krig.RK$Sample, levels=c("Koa", "RUBARG", "Soil"))
+
 KOA.RK<-  krig.RK %>% filter(Sample=="Koa") #just Koa
 
 coordinates(KOA.RK)<- ~x.meter + y.meter # coordinate system
+
+# create a bubble plot with the random values
+bubble(KOA.RK, zcol='d15N', fill=TRUE, do.sqrt=FALSE, maxsize=3)
+
+TheVariogram=variogram(d15N~1, data=KOA.RK)
+plot(TheVariogram)
+
+TheVariogramModel <- vgm(psill=0.2, model="Gau", nugget=0.1, range=8)
+plot(TheVariogram, model=TheVariogramModel)
+
+FittedModel <- fit.variogram(TheVariogram, model=TheVariogramModel)
+
+plot(TheVariogram, model=FittedModel)
+
+# Create a "gstat" object
+TheGStat <- gstat(id="Sine", formula=d15N ~ 1, data=KOA.RK)
+TheVariogram=variogram(TheGStat, map=TRUE, cutoff=4000, width=200)
+
+## the original data had a large north-south trend, check with a variogram map
+plot(TheVariogram, threshold=1)
+
+# Create directional variograms at 0, 45, 90, 135 degrees from north (y-axis)
+TheVariogram <- variogram(TheGStat, alpha=c(0,45,90,135))
+
+# Create a new model
+TheModel=vgm(model='Lin' , anis=c(0,0.5))
+
+# Fit a model to the variogram
+FittedModel <- fit.variogram(TheVariogram, model=TheModel)
+
+## plot results:
+plot(TheVariogram, model=FittedModel, as.table=TRUE)
+
+# update the gstat object:
+TheGStat <- gstat(TheGStat, id="Sine", model=FittedModel )
 
 Columns=seq(from=1, to=20, by=0.1)
 Rows=seq(from=1, to=35, by=0.1)
@@ -538,8 +645,32 @@ Grid.KOA.RK <- expand.grid(x=Columns,y=Rows)
 
 # Convert Thegrid to a SpatialPixel class
 coordinates(Grid.KOA.RK) <- ~ x+y
-gridded(Grid.KOA.RK) <- TRUE
+gridded(Grid.KOA.RK) <- TRUE  # Plot the grid and points
 
+plot(krig.RK$d15N, col=krig.RK$Sample, cex=0.8, pch=1)
+legend("topleft", legend=levels(krig.RK$Sample), box.lty=0, bg="transparent", pch=1, 
+            col=c("black", "red", "green"), cex=1)
+title("Interpolation Grid and Sample Points")
+
+# perform ordinary kriging prediction:
+TheSurface <- predict(TheGStat, model=FittedModel, newdata=Grid.KOA.RK)
+
+# Set the margins to 2
+par(mar=c(2,2,2,2))
+
+# Add the Kriged surface
+image(TheSurface, col=terrain.colors(20))
+
+# Add contours to the surface
+contour(TheSurface, add=TRUE, drawlabels=FALSE, col='brown')
+
+# Add the points
+points(KOA.RK, pch=4, cex=0.5)
+
+# Set the title
+title('Prediction')
+
+##for the second plot
 d15N.KOA.RK <- autoKrige(d15N ~ 1, KOA.RK, Grid.KOA.RK) # ordinary kriging
 plot(d15N.KOA.RK)
 plot(variogram(d15N ~ 1, KOA.RK)) # variogram
@@ -547,6 +678,7 @@ plot(variogram(d15N ~ 1, KOA.RK)) # variogram
 d15N.KOA.RK2 <- krige(d15N ~ 1, KOA.RK, Grid.KOA.RK) # ordinary kriging
 plotd15N.koa.krig.RK<-spplot(d15N.KOA.RK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
        main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
+plotd15N.koa.krig.RK
 
 ```
 
