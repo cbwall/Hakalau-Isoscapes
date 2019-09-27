@@ -1070,7 +1070,7 @@ plot(variogram(d15N ~ 1, Soil.RK)) # variogram
 d15N.Soil.RK2 <- krige(d15N ~ 1, Soil.RK, Grid.Soil.RK) # ordinary kriging
 plotd15N.Soil.krig.RK2<-spplot(d15N.Soil.RK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
        main=expression(paste(delta^{15}, N, "--RK (Afforested Soil Plot)")))
-plotd15N.Soil.krig.RK2
+plotd15N.Soil.krig.RK2 
 ```
 
 
