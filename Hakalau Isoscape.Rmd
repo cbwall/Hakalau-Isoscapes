@@ -485,16 +485,19 @@ GridRK <- spsample(krig.RK, type='regular', n=1e5)
 gridded(GridRK) <- TRUE
 
 ## d15N plot
-d15N.krig.RK <- krige(d15N ~ 1, krig.RK)
+d15N.krig.RK <- krige(d15N ~ 1, krig.RK, GridRK)
 plot(variogram(d15N ~ 1, krig.AK))
 
 plotd15N.krig.RK<-spplot(d15N.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
        main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
 
 #####################
+grid.draw.ggmatrix <- function(x, recording = TRUE) {
+  print(x)
+}
 ### combined Ak-Rk krig d15N plot 
-plot_grid(plotd15N.krig.RK, plotd15N.krig.AK, ncol=2, nrow=1)
-dev.copy(pdf, "figures/RKAK.d15N.krig.pdf", width=7, height=4, encod="MacRoman")
+gridExtra::grid.arrange(plotd15N.krig.RK, plotd15N.krig.AK, ncol=2, nrow=1)
+dev.copy(pdf, "figures/RKAK.d15N.krig2.pdf", width=7, height=4, encod="MacRoman")
 dev.off()
 
 ```
