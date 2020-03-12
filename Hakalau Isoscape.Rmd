@@ -36,6 +36,7 @@ library("ggplot2")
 library("scales") # for "comma"
 library("magrittr")
 library("plyr")
+library("effects")
 })
 ```
 
@@ -120,8 +121,11 @@ dev.off()
 
 ```
 
-#### Ecology and Isotopes data
-```{r, isotope data}
+#### Ecology and Isotopes data  
+- DBH calculations  
+- data mutating  
+- test scatters of all samples by habitat  
+```{r, Hak data}
 Hak.df<-read.csv("data/Hakalau.isotopes.csv")
 
 ########## DBH 
@@ -167,8 +171,8 @@ Can.df<- Can.df %>%
 Hak.df$DBH.Total<-DBH.df$DBH.Total
 Hak.df$Canopy.area<-Can.df$Canopy.area
 
-# iso.data is the full dataframe
-iso.data<- Hak.df %>%
+# Hak.data is the full dataframe
+Hak.data<- Hak.df %>%
   select(c(Plot, Sample, DBH.Total, Canopy.area, d15N, d13C, N..percent, Total.N..mmol.gdw, C..percent, Total.C..mmol.gdw, C.N))
 
 ########################
@@ -178,13 +182,13 @@ iso.data<- Hak.df %>%
 # test plots
 
 ### Scatter of d13C vs. d15N
-iso.scatter<-ggplot(data=iso.dat, aes(x=d13C, y=d15N, color=Plot, shape=Sample))+
+iso.scatter<-ggplot(data=Hak.data, aes(x=d13C, y=d15N, color=Plot, shape=Sample))+
   geom_point(cex=1.5) +
   xlab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))) +
   ylab(expression(paste(delta^{15}, N, " (\u2030, air)"))) 
 
 ### Scatter of total C vs. total N
-total.nut<-ggplot(data=iso.dat, aes(x=Total.C..mmol.gdw, y=Total.N..mmol.gdw, color=Plot, shape=Sample))+
+total.nut<-ggplot(data=Hak.data, aes(x=Total.C..mmol.gdw, y=Total.N..mmol.gdw, color=Plot, shape=Sample))+
   geom_point(cex=1.5) +
   xlab("total Carbon") +
   ylab("total Nitrogen")
@@ -196,44 +200,310 @@ dev.copy(pdf, "figures/scatter.data.pdf", width=7, height=4, encod="MacRoman")
 dev.off()
 ```
 
+```{r Beta Ndfa}
+# Beta and Ndfa
+# ability for Koa to fix
+
+
+################# Need new dataframe of KOA and Rubus 
+########### separate data frame
+# full Hak data dataframe
+Ndfa.Hak<- Hak.data %>%
+  select(c(Plot, Sample, d15N))
+
+Ndfa.AK<-Ndfa.Hak[(Ndfa.Hak$Plot=="AK"),]
+Ndfa.RK<-Ndfa.Hak[(Ndfa.Hak$Plot=="RK"),]
+
+# AK Rubs
+AK.R.min<-min(Ndfa.AK[(Ndfa.AK$Sample=="RUBHAW"),]$d15N) # 0.6
+AK.R.max<-max(Ndfa.AK[(Ndfa.AK$Sample=="RUBHAW"),]$d15N) # 3.15
+AK.R.med<-median(Ndfa.AK[(Ndfa.AK$Sample=="RUBHAW"),]$d15N) # 1.94
+AK.R.av<-mean(Ndfa.AK[(Ndfa.AK$Sample=="RUBHAW"),]$d15N) # 1.9
+
+# RK Rubs
+RK.R.min<-min(Ndfa.RK[(Ndfa.RK$Sample=="RUBARG"),]$d15N) # 0.99
+RK.R.max<-max(Ndfa.RK[(Ndfa.RK$Sample=="RUBARG"),]$d15N) # 4.53
+RK.R.med<-median(Ndfa.RK[(Ndfa.RK$Sample=="RUBARG"),]$d15N) # 3.03
+RK.R.av<-mean(Ndfa.RK[(Ndfa.RK$Sample=="RUBARG"),]$d15N) # 2.93
+
+# AK and RK Koa dataframes
+AK.Koa.df<-Ndfa.AK[(Ndfa.AK$Sample=="Koa"),]
+RK.Koa.df<-Ndfa.AK[(Ndfa.RK$Sample=="Koa"),]
+
+
+##### Beta -1 plot
+# Beta negative 1
+# AK koa Ndfa
+AK.Koa.df.betneg1<- AK.Koa.df %>%
+  mutate(nfix.AK.min = (AK.R.min - d15N)/(AK.R.min-Beta.neg1)*100) %>%
+  mutate(nfix.AK.max = (AK.R.max - d15N)/(AK.R.max-Beta.neg1)*100)  %>%
+  mutate(nfix.AK.med = (AK.R.med - d15N)/(AK.R.med-Beta.neg1)*100) %>%
+  mutate(nfix.AK.av = (AK.R.av - d15N)/(AK.R.av-Beta.neg1)*100)
+
+# RK koa Ndfa
+RK.Koa.df.betneg1<- RK.Koa.df %>%
+  mutate(nfix.RK.min = (RK.R.min - d15N)/(RK.R.min-Beta.neg1)*100) %>%
+  mutate(nfix.RK.max = (RK.R.max - d15N)/(RK.R.max-Beta.neg1)*100)  %>%
+  mutate(nfix.RK.med = (RK.R.med - d15N)/(RK.R.med-Beta.neg1)*100) %>%
+  mutate(nfix.RK.av = (RK.R.av - d15N)/(RK.R.av-Beta.neg1)*100)
+
+
+## Max
+par(mfrow=c(1,2), mar=c(5,5,4,2))
+
+# build empty plot
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.max, yaxt="n", xaxt="n", ylim=c(-2,3), xlim=c(100, -30), 
+     xlab="", ylab="", type="n")
+
+# add shaded areas
+# max and median are highest and lowest respectively
+
+# models (Max)
+B1.mod.AKoa.max<-lm(d15N~nfix.AK.max, data=AK.Koa.df.betneg1) 
+B1.mod.RKoa.max<-lm(d15N~nfix.RK.max, data=RK.Koa.df.betneg1)
+
+# models (Median)
+B1.mod.AKoa.med<-lm(d15N~nfix.AK.med, data=AK.Koa.df.betneg1)
+B1.mod.RKoa.med<-lm(d15N~nfix.RK.med, data=RK.Koa.df.betneg1)
+
+par(new=T)
+
+#for AK
+x <- seq(-40,100, 1) # sequence
+ymax.AK <- x*(B1.mod.AKoa.max$coefficients[2])+B1.mod.AKoa.max$coefficients[1] # x*slope + intercept
+ymed.AK <- x*(B1.mod.AKoa.med$coefficients[2])+B1.mod.AKoa.med$coefficients[1]
+polygon(c(rev(x), x),c(rev(ymax.AK), ymed.AK),col=adjustcolor("salmon",alpha.f=0.2), border=NA)
+
+#for RK
+ymax.RK <- x*(B1.mod.RKoa.max$coefficients[2])+B1.mod.RKoa.max$coefficients[1] # x*slope + intercept
+ymed.RK <- x*(B1.mod.RKoa.med$coefficients[2])+B1.mod.RKoa.med$coefficients[1]
+polygon(c(rev(x), x),c(rev(ymax.RK), ymed.RK),col=adjustcolor("lightseagreen",alpha.f=0.2), border=NA)
+
+# plot points and model fits
+par(new=T)
+
+# AK 
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.max, col="salmon", xlab="Ndf-koa (%)",
+     ylab= expression(paste(delta^{15}, N, " (\u2030)")), cex.axis=0.7, main= "Beta = -1", cex.main=0.7,
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.max, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+legend("topleft", legend= c("AK", "RK"), bg="transparent", 
+       col=c("salmon", "lightseagreen"), 
+       pch=20, box.lty=0)
+
+# add model lines
+abline(B1.mod.AKoa.max, col="coral", lty=1)
+abline(B1.mod.RKoa.max, col="darkcyan", lty=1)
+
+## Mean
+# AK 
+par(new=T)
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.av, col="salmon", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.av, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+
+# model
+B1.mod.AKoa.av<-lm(d15N~nfix.AK.av, data=AK.Koa.df.betneg1)
+B1.mod.RKoa.av<-lm(d15N~nfix.RK.av, data=RK.Koa.df.betneg1)
+
+# add model lines
+abline(B1.mod.AKoa.av, col="coral", lty=2)
+abline(B1.mod.RKoa.av, col="darkcyan", lty=2)
+
+
+## Median
+# AK 
+par(new=T)
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.med, col="salmon", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.med, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+legend("bottomright", legend= c("max", "mean", "median"), bg="transparent",
+       col="black", lty=c(1,2,4), 
+       pch=20, cex=0.7, box.lty=0)
+
+# model
+B1.mod.AKoa.med<-lm(d15N~nfix.AK.med, data=AK.Koa.df.betneg1)
+B1.mod.RKoa.med<-lm(d15N~nfix.RK.med, data=RK.Koa.df.betneg1)
+
+# add model lines
+abline(B1.mod.AKoa.med, col="coral", lty=4)
+abline(B1.mod.RKoa.med, col="darkcyan", lty=4)
+
+###################
+###################
+# Beta negative 2
+
+##### Beta -2 plot
+# Beta negative 2
+# AK koa Ndfa
+AK.Koa.df.betneg2<- AK.Koa.df %>%
+  mutate(nfix.AK.min = (AK.R.min - d15N)/(AK.R.min-Beta.neg2)*100) %>%
+  mutate(nfix.AK.max = (AK.R.max - d15N)/(AK.R.max-Beta.neg2)*100)  %>%
+  mutate(nfix.AK.med = (AK.R.med - d15N)/(AK.R.med-Beta.neg2)*100) %>%
+  mutate(nfix.AK.av = (AK.R.av - d15N)/(AK.R.av-Beta.neg2)*100)
+
+# RK koa Ndfa
+RK.Koa.df.betneg2<- RK.Koa.df %>%
+  mutate(nfix.RK.min = (RK.R.min - d15N)/(RK.R.min-Beta.neg2)*100) %>%
+  mutate(nfix.RK.max = (RK.R.max - d15N)/(RK.R.max-Beta.neg2)*100)  %>%
+  mutate(nfix.RK.med = (RK.R.med - d15N)/(RK.R.med-Beta.neg2)*100) %>%
+  mutate(nfix.RK.av = (RK.R.av - d15N)/(RK.R.av-Beta.neg2)*100)
+
+
+## Max
+
+# build empty plot
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.max, yaxt="n", xaxt="n", ylim=c(-2,3), xlim=c(100, -30), 
+     xlab="", ylab="", type="n")
+
+# add shaded areas
+# max and median are highest and lowest respectively
+
+# models (Max)
+B2.mod.AKoa.max<-lm(d15N~nfix.AK.max, data=AK.Koa.df.betneg2) 
+B2.mod.RKoa.max<-lm(d15N~nfix.RK.max, data=RK.Koa.df.betneg2)
+
+# models (Median)
+B2.mod.AKoa.med<-lm(d15N~nfix.AK.med, data=AK.Koa.df.betneg2)
+B2.mod.RKoa.med<-lm(d15N~nfix.RK.med, data=RK.Koa.df.betneg2)
+
+par(new=T)
+
+#for AK
+x <- seq(-40,100, 1) # sequence
+ymax.AK <- x*(B2.mod.AKoa.max$coefficients[2])+B2.mod.AKoa.max$coefficients[1] # x*slope + intercept
+ymed.AK <- x*(B2.mod.AKoa.med$coefficients[2])+B2.mod.AKoa.med$coefficients[1]
+polygon(c(rev(x), x),c(rev(ymax.AK), ymed.AK),col=adjustcolor("salmon",alpha.f=0.2), border=NA)
+
+#for RK
+ymax.RK <- x*(B2.mod.RKoa.max$coefficients[2])+B2.mod.RKoa.max$coefficients[1] # x*slope + intercept
+ymed.RK <- x*(B2.mod.RKoa.med$coefficients[2])+B2.mod.RKoa.med$coefficients[1]
+polygon(c(rev(x), x),c(rev(ymax.RK), ymed.RK),col=adjustcolor("lightseagreen",alpha.f=0.2), border=NA)
+
+# plot points and model fits
+par(new=T)
+
+# AK 
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.max, col="salmon", xlab="Ndf-koa (%)",
+     ylab= expression(paste(delta^{15}, N, " (\u2030)")), cex.axis=0.7, main= "Beta = -2", cex.main=0.7,
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.max, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+legend("topleft", legend= c("AK", "RK"), bg="transparent", 
+       col=c("salmon", "lightseagreen"), 
+       pch=20, box.lty=0)
+
+# add model lines
+abline(B2.mod.AKoa.max, col="coral", lty=1)
+abline(B2.mod.RKoa.max, col="darkcyan", lty=1)
+
+## Mean
+# AK 
+par(new=T)
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.av, col="salmon", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.av, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+
+# model
+B2.mod.AKoa.av<-lm(d15N~nfix.AK.av, data=AK.Koa.df.betneg2)
+B2.mod.RKoa.av<-lm(d15N~nfix.RK.av, data=RK.Koa.df.betneg2)
+
+# add model lines
+abline(B2.mod.AKoa.av, col="coral", lty=2)
+abline(B2.mod.RKoa.av, col="darkcyan", lty=2)
+
+
+## Median
+# AK 
+par(new=T)
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.med, col="salmon", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.med, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+     ylim=c(-2,3), xlim=c(100, -30), cex=0.7, pch=20)
+legend("bottomright", legend= c("max", "mean", "median"), bg="transparent",
+       col="black", lty=c(1,2,4), 
+       pch=20, cex=0.7, box.lty=0)
+
+# model
+B2.mod.AKoa.med<-lm(d15N~nfix.AK.med, data=AK.Koa.df.betneg2)
+B2.mod.RKoa.med<-lm(d15N~nfix.RK.med, data=RK.Koa.df.betneg2)
+
+# add model lines
+abline(B2.mod.AKoa.med, col="coral", lty=4)
+abline(B2.mod.RKoa.med, col="darkcyan", lty=4)
+
+dev.copy(pdf, "figures/Ndfa.pdf", width=8, height=5, encod="MacRoman")
+dev.off()
+
+```
+
+#### DBH, Canopy  d15N models  
+- plot against d15N values with model curves
+- scatters with models
+- d15N differ by PLOT (AK vs RK), no other effects
 
 ```{r, d15N and DBH and Canopy}
 ######## plot of d15N and DBH, and d15N and Canopy area
 
 # all samples
-
 par(mfrow=c(1,2), mar=c(4,5,1,1))
 
 #### DBH
-mod.DBH<-lm(d15N~DBH.Total+Plot, data=iso.data)
+mod.DBH<-lm(d15N~DBH.Total*Plot, data=Hak.data) # no interaction effect
+
+mod.DBH<-lm(d15N~DBH.Total+Plot, data=Hak.data)
 int<-coef(summary(mod.DBH))[1]
 DBH.slope<-coef(summary(mod.DBH))["DBH.Total",1] # DBH (slope for all figures)
 RK.int<-coef(summary(mod.DBH))["PlotRK",1] # RK, AK = 0
 
 
-    # no significant relationship to d15N but a trend for DECREASE with DBH
-plot(d15N~DBH.Total, data=iso.data,
+# no significant relationship to d15N but a trend for DECREASE with DBH
+plot(d15N~DBH.Total, data=Hak.data,
     col=c("salmon","lightseagreen")[as.factor(Plot)],
     pch=c(1,2)[as.factor(Plot)],
     ylab=expression(paste(delta^{15}, N, " (\u2030, air)")),
     xlab="DBH (cm)",
     ylim=c(0,5), xlim=c(0,60))
     ablineclip(int, DBH.slope, col="coral", lwd=2, 
-               x1 = min(iso.data$DBH.Total[iso.data$Plot=="AK"], na.rm=T), 
-               x2 = max(iso.data$DBH.Total[iso.data$Plot=="AK"], na.rm=T)) # AK model
+               x1 = min(Hak.data$DBH.Total[Hak.data$Plot=="AK"], na.rm=T), 
+               x2 = max(Hak.data$DBH.Total[Hak.data$Plot=="AK"], na.rm=T)) # AK model
     ablineclip((int+ RK.int), DBH.slope, col="lightseagreen", lwd=2, 
-               x1 = min(iso.data$DBH.Total[iso.data$Plot=="RK"], na.rm=T), 
-               x2 = max(iso.data$DBH.Total[iso.data$Plot=="RK"], na.rm=T)) # RK model
+               x1 = min(Hak.data$DBH.Total[Hak.data$Plot=="RK"], na.rm=T), 
+               x2 = max(Hak.data$DBH.Total[Hak.data$Plot=="RK"], na.rm=T)) # RK model
 
     
 #### Canopy
-mod.Can<-lm(d15N~Canopy.area+Plot, data=iso.data)
-int<-coef(summary(mod.DBH))[1]
+mod.Can<-lm(d15N~Canopy.area*Plot, data=Hak.data) # no interaction
+
+mod.Can<-lm(d15N~Canopy.area+Plot, data=Hak.data)
+int<-coef(summary(mod.Can))[1]
 Can.slope<-coef(summary(mod.Can))["Canopy.area",1] # DBH (slope for all figures)
 RK.int<-coef(summary(mod.Can))["PlotRK",1] # RK, AK = 0
 
 # no significant relationship to d15N but a trend for INCREASE with canopy area
-plot(d15N~Canopy.area, data=iso.data, yaxt="n",
+plot(d15N~Canopy.area, data=Hak.data, yaxt="n",
      col=c("salmon","lightseagreen")[as.factor(Plot)],
      pch=c(1,2)[as.factor(Plot)],
      xlab=expression(paste("Canopy (m"^2,")")),
@@ -241,24 +511,52 @@ plot(d15N~Canopy.area, data=iso.data, yaxt="n",
      ylim=c(0,5), xlim=c(0,80))
      axis(side=2, labels=F)
      ablineclip(int, Can.slope, col="salmon", lwd=2, 
-               x1 = min(iso.data$Canopy.area[iso.data$Plot=="AK"], na.rm=T), 
-               x2 = max(iso.data$Canopy.area[iso.data$Plot=="AK"], na.rm=T)) # AK model
+               x1 = min(Hak.data$Canopy.area[Hak.data$Plot=="AK"], na.rm=T), 
+               x2 = max(Hak.data$Canopy.area[Hak.data$Plot=="AK"], na.rm=T)) # AK model
      ablineclip((int+ RK.int), Can.slope, col="lightseagreen", lwd=2, 
-               x1 = min(iso.data$Canopy.area[iso.data$Plot=="RK"], na.rm=T), 
-               x2 = max(iso.data$Canopy.area[iso.data$Plot=="RK"], na.rm=T)) # RK model
-     legend("topright", legend=levels(iso.data$Plot), box.lty=0, bg="transparent", lty=1, pch=c(1,2), 
+               x1 = min(Hak.data$Canopy.area[Hak.data$Plot=="RK"], na.rm=T), 
+               x2 = max(Hak.data$Canopy.area[Hak.data$Plot=="RK"], na.rm=T)) # RK model
+     legend("topright", legend=levels(Hak.data$Plot), box.lty=0, bg="transparent", lty=1, pch=c(1,2), 
             col=c("salmon", "lightseagreen"), cex=1)
 
 dev.copy(pdf, "figures/d15N.DBH.Canopy.pdf", width=7, height=5, encod="MacRoman")
 dev.off()
 ```
-
+  
+With Plot being most important effect, divide DBH and Canopy to be plot mean +/- SE  
+  
+*Figure 1. with afforested and remnant forests*   
+- DBH and Canopy figure as bar chart and means
+- significant plot effects  
+- greater DBH (AK), trend for greater Canopy (RK)  
 ```{r mean plots for DBH and Canopy}
-DBH.m<-aggregate(DBH.Total~Plot, data=iso.data, mean)
-Can.m<-aggregate(Canopy.area~Plot, data=iso.data, mean)
+## Models
+mod.DBH<-lm(DBH.Total~Plot, data=Hak.data); anova(mod.DBH) # signif
+mod.Can<-lm(Canopy.area~Plot, data=Hak.data); anova(mod.Can) # not signif, a bit wobbly in assumptions
 
-DBH.SE<-aggregate(DBH.Total~Plot, data=iso.data, std.error)
-Can.SE<-aggregate(Canopy.area~Plot, data=iso.data, std.error)
+# diagnostic plots
+for(i in c(3:4)){
+  Y<-Hak.data[,i]
+  full<-lm(Y~Plot, data=Hak.data, na.action=na.exclude)
+  R <- resid(full) #save glm residuals
+  op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
+  plot(full, add.smooth = FALSE, which=1)
+  QQ <- qqnorm(R, main = colnames(Hak.data)[i]) 
+  QQline <- qqline(R)
+  hist(R, xlab="Residuals", main = colnames(Hak.data)[i])
+  plot(Hak.data$Plot, R, xlab=colnames(Hak.data)[i], ylab="Residuals")
+}
+
+# Mann-Whitney U-Test
+mwu(Hak.data, DBH.Total, Plot) # signif
+mwu(Hak.data, Canopy.area, Plot) # not
+
+#### plots
+DBH.m<-aggregate(DBH.Total~Plot, data=Hak.data, mean)
+Can.m<-aggregate(Canopy.area~Plot, data=Hak.data, mean)
+
+DBH.SE<-aggregate(DBH.Total~Plot, data=Hak.data, std.error)
+Can.SE<-aggregate(Canopy.area~Plot, data=Hak.data, std.error)
 
 mean.eco<-cbind(DBH.m, Can.m[2], DBH.SE[2], Can.SE[2]); colnames(mean.eco)<-c("Plot", "DBH", "Can", "D.SE", "C.SE")
 
@@ -286,21 +584,23 @@ plot_grid(DBH.plot, Canopy.plot,
 dev.copy(pdf, "figures/DBHCanopy.means.pdf", width=7, height=4, encod="MacRoman")
 dev.off()
 
-
 ```
  
+ 
 data means and SE for plots
+- bar plots of d13C, d15N, TC and TN for all 4 samples types. 
+- perhaps not to be included in paper, but good visual
 ```{r, scatter plots of isotope data}
 ## make some means and SE
-d13C.m<-aggregate(d13C~Plot+Sample, data=iso.dat, mean)
-d15N.m<-aggregate(d15N~Plot+Sample, data=iso.dat, mean)
-TN.m<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=iso.dat, mean)
-TC.m<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=iso.dat, mean)
+d13C.m<-aggregate(d13C~Plot+Sample, data=Hak.data, mean)
+d15N.m<-aggregate(d15N~Plot+Sample, data=Hak.data, mean)
+TN.m<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=Hak.data, mean)
+TC.m<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=Hak.data, mean)
 
-d13C.SE<-aggregate(d13C~Plot+Sample, data=iso.dat, std.error)
-d15N.SE<-aggregate(d15N~Plot+Sample, data=iso.dat, std.error)
-TN.SE<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=iso.dat, std.error)
-TC.SE<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=iso.dat, std.error)
+d13C.SE<-aggregate(d13C~Plot+Sample, data=Hak.data, std.error)
+d15N.SE<-aggregate(d15N~Plot+Sample, data=Hak.data, std.error)
+TN.SE<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=Hak.data, std.error)
+TC.SE<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=Hak.data, std.error)
 
 mean.data<- cbind(d13C.m, d15N.m[3], TN.m[3], TC.m[3], d13C.SE[3], d15N.SE[3], TN.SE[3], TC.SE[3])
 colnames(mean.data)<-c("Plot", "Sample", "d13C.mean", "d15N.mean", "TN.mean", "TC.mean", "d15N.SE", "d13C.SE", "TN.SE", "TC.SE")
@@ -354,27 +654,27 @@ Run statistics on the responses
 # models
 
 ## tests for assumptions
-for(i in c(8:10,12:15)){
-  Y<-iso.dat[,i]
-  full<-lm(Y~Plot*Sample, data=iso.dat, na.action=na.exclude)
+for(i in c(5:11)){
+  Y<-Hak.data[,i]
+  full<-lm(Y~Plot*Sample, data=Hak.data, na.action=na.exclude)
   R <- resid(full) #save glm residuals
  
   op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
   plot(full, add.smooth = FALSE, which=1)
-  QQ <- qqnorm(R, main = colnames(iso.dat)[i]) 
+  QQ <- qqnorm(R, main = colnames(Hak.data)[i]) 
   QQline <- qqline(R)
-  hist(R, xlab="Residuals", main = colnames(iso.dat)[i])
-  plot(iso.dat$Plot, R, xlab=colnames(iso.dat)[i], ylab="Residuals")
-  plot(iso.dat$Sample, R, xlab=colnames(iso.dat)[i], ylab="Residuals")
+  hist(R, xlab="Residuals", main = colnames(Hak.data)[i])
+  plot(Hak.data$Plot, R, xlab=colnames(Hak.data)[i], ylab="Residuals")
+  plot(Hak.data$Sample, R, xlab=colnames(Hak.data)[i], ylab="Residuals")
 }
 
 ######## ######## 
 ######## Carbon isotopes
 
-d13C.lm<-lm(d13C~Plot*Sample, data=iso.dat)
+d13C.lm<-lm(d13C~Plot*Sample, data=Hak.data)
 d13C.av<-(aov(d13C.lm)); summary(d13C.av) # Plot and Sample effects
 plot(allEffects(d13C.lm)) # 2-way interaction
-plot(allEffects(lm(d13C~Plot+Sample, data=iso.dat))) # main effects
+plot(allEffects(lm(d13C~Plot+Sample, data=Hak.data))) # main effects
 
 tukey<-TukeyHSD(d13C.av); tukey
 # d13C: Plots differ (Ak vs Rk), Samples differ (as expected)
@@ -387,10 +687,10 @@ tukey<-TukeyHSD(d13C.av); tukey
 ######## ######## 
 ######## Nitrogen isotopes
 
-d15N.lm<-lm(d15N~Plot*Sample, data=iso.dat)
+d15N.lm<-lm(d15N~Plot*Sample, data=Hak.data)
 d15N.av<-(aov(d15N.lm)); summary(d15N.av) # Plot and Sample effects
 plot(allEffects(d15N.lm)) # 2-way interaction
-plot(allEffects(lm(d15N~Plot+Sample, data=iso.dat))) # main effects
+plot(allEffects(lm(d15N~Plot+Sample, data=Hak.data))) # main effects
 
 tukey<-TukeyHSD(d15N.av); tukey
 # d15N: Plots differ (Ak vs Rk), Samples differ (as expected)
@@ -403,25 +703,25 @@ tukey<-TukeyHSD(d15N.av); tukey
 ######## ######## 
 ######## Carbon content
 
-TC.lm<-lm(Total.C..mmol.gdw~Plot*Sample, data=iso.dat)
+TC.lm<-lm(Total.C..mmol.gdw~Plot*Sample, data=Hak.data)
 TC.av<-(aov(TC.lm)); summary(TC.av) # Sample and Plot effects
-plot(allEffects(lm(Total.C..mmol.gdw~Plot + Sample, data=iso.dat))) # higher in RK and Koa
+plot(allEffects(lm(Total.C..mmol.gdw~Plot + Sample, data=Hak.data))) # higher in RK and Koa
 tukey<-TukeyHSD(TC.av); tukey
 
 ######## ######## 
 ######## Nitrogen content
 
-TN.lm<-lm(Total.N..mmol.gdw~Plot*Sample, data=iso.dat)
+TN.lm<-lm(Total.N..mmol.gdw~Plot*Sample, data=Hak.data)
 TN.av<-(aov(TN.lm)); summary(TN.av) # Sample effects
-plot(allEffects(lm(Total.N..mmol.gdw~Sample, data=iso.dat))) # main effects
+plot(allEffects(lm(Total.N..mmol.gdw~Sample, data=Hak.data))) # main effects
 tukey<-TukeyHSD(TN.av); tukey
 
 ######## ######## 
 ######## Nitrogen content
 
-CN.lm<-lm(C.N~Plot*Sample, data=iso.dat)
+CN.lm<-lm(C.N~Plot*Sample, data=Hak.data)
 CN.av<-(aov(CN.lm)); summary(CN.av) # Plot Sample effects
-plot(allEffects(lm(C.N~Plot +Sample, data=iso.dat))) # main effects
+plot(allEffects(lm(C.N~Plot +Sample, data=Hak.data))) # main effects
 tukey<-TukeyHSD(CN.av); tukey
 
 ```
@@ -434,7 +734,7 @@ First, make krigs of the full plot and all data layers
 krig<-read.csv("data/krig.matrix.csv") # matrix of points for isoscape grid
 
 # merge kriging data with isotope data
-data.merge<-as.data.frame(join_all(list(iso.dat, krig), by = "Position.point", type='full'))
+data.merge<-as.data.frame(join_all(list(Hak.data, krig), by = "Position.point", type='full'))
 
 data.merge<-data.merge[c(-167:-194),] # drop NAs where no samples taken
 scape.data<-data.merge
@@ -496,6 +796,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
   print(x)
 }
 ### combined Ak-Rk krig d15N plot 
+par(mfrow=c(1,2))
 gridExtra::grid.arrange(plotd15N.krig.RK, plotd15N.krig.AK, ncol=2, nrow=1)
 dev.copy(pdf, "figures/RKAK.d15N.krig2.pdf", width=7, height=4, encod="MacRoman")
 dev.off()
@@ -504,7 +805,6 @@ dev.off()
   
 Now make rasters and kirgs for the types of data for analysis.
 
-  
 #### AK plot rasters  
   
 Subset data and only examine **KOA** in the plots. 
@@ -568,7 +868,11 @@ coordinates(Grid.KOA.AK) <- ~ x+y
 
 gridded(Grid.KOA.AK) <- TRUE # Plot the grid and points
 
+gridExtra::grid.arrange(plotd15N.krig.RK, plotd15N.krig.AK, ncol=2, nrow=1)
+dev.copy(pdf, "figures/RKAK.d15N.krig2.pdf", width=7, height=4, encod="MacRoman")
+dev.off()
 
+par(mfrow=c(1,1), mar=c(4,4,2,2))
 plot(krig.AK$d15N, col=krig.AK$Sample, cex=0.8)
 legend("topleft", legend=levels(krig.AK$Sample), box.lty=0, bg="transparent", pch=1, 
             col=c("black", "red", "green"), cex=1)
@@ -594,7 +898,7 @@ points(KOA.AK, pch=4, cex=0.5)
 title('Prediction')
 
 ##for the second plot
-d15N.KOA.AK <- krige(d15N ~ 1,TheData , TheGrid) # ordinary kriging
+d15N.KOA.AK <- krige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
 plot(d15N.KOA.AK)
 
 d15N.KOA.AK <- autoKrige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
@@ -604,6 +908,8 @@ plot(variogram(d15N ~ 1, KOA.AK)) # variogram
 d15N.KOA.AK2 <- krige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
 plotd15N.koa.krig.AK2<-spplot(d15N.KOA.AK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
        main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
+plotd15N.koa.krig.AK2
+
 ```
 
 Just **Rubus hawaiiensis** in AK 
@@ -666,11 +972,11 @@ coordinates(Grid.RubHa.AK) <- ~ x+y
 
 gridded(Grid.RubHa.AK) <- TRUE # Plot the grid and points
 
-
+par(mfrow=c(1,1), mar=c(4,4,2,2))
 plot(krig.AK$d15N, col=krig.AK$Sample, cex=0.8)
 legend("topleft", legend=levels(krig.AK$Sample), box.lty=0, bg="transparent", pch=1, 
             col=c("black", "red", "green"), cex=1)
-title("Interpolation Grid and Sample Points")
+title("RUBHa Interpolation Grid and Sample Points")
 
 # perform ordinary kriging prediction:
 TheSurface <- predict(TheGStat, model=FittedModel, newdata=Grid.RubHa.AK)
@@ -698,6 +1004,7 @@ plot(variogram(d15N ~ 1, RubHa.AK)) # variogram
 d15N.RubHa.AK2 <- krige(d15N ~ 1, RubHa.AK, Grid.RubHa.AK) # ordinary kriging
 plotd15N.RubHa.krig.AK2<-spplot(d15N.RubHa.AK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
        main=expression(paste(delta^{15}, N, "--AK (Afforested RubHa Plot)")))
+plotd15N.RubHa.krig.AK2
 ```
   
 Now just do **SOIL** for the AK site
@@ -760,10 +1067,11 @@ coordinates(Grid.Soil.AK) <- ~ x+y
 
 gridded(Grid.Soil.AK) <- TRUE # Plot the grid and points
 
+par(mfrow=c(1,1), mar=c(4,4,2,2))
 plot(krig.AK$d15N, col=krig.AK$Sample, cex=0.8)
 legend("topleft", legend=levels(krig.AK$Sample), box.lty=0, bg="transparent", pch=1, 
             col=c("black", "red", "green"), cex=1)
-title("Interpolation Grid and Sample Points")
+title("SOIL Interpolation Grid and Sample Points")
 
 # perform ordinary kriging prediction:
 TheSurface <- predict(TheGStat, model=FittedModel, newdata=Grid.Soil.AK)
@@ -849,6 +1157,7 @@ Grid.KOA.RK <- expand.grid(x=Columns,y=Rows)
 coordinates(Grid.KOA.RK) <- ~ x+y
 gridded(Grid.KOA.RK) <- TRUE  # Plot the grid and points
 
+par(mfrow=c(1,1), mar=c(4,4,2,2))
 plot(krig.RK$d15N, col=krig.RK$Sample, cex=0.8, pch=1)
 legend("topleft", legend=levels(krig.RK$Sample), box.lty=0, bg="transparent", pch=1, 
             col=c("black", "red", "green"), cex=1)
@@ -946,11 +1255,11 @@ coordinates(Grid.RubAr.RK) <- ~ x+y
 
 gridded(Grid.RubAr.RK) <- TRUE # Plot the grid and points
 
-
+par(mfrow=c(1,1), mar=c(4,4,2,2))
 plot(krig.RK$d15N, col=krig.RK$Sample, cex=0.8)
 legend("topleft", legend=levels(krig.RK$Sample), box.lty=0, bg="transparent", pch=1, 
             col=c("black", "red", "green"), cex=1)
-title("Interpolation Grid and Sample Points")
+title("RUBAr Interpolation Grid and Sample Points")
 
 # perform ordinary kriging prediction:
 TheSurface <- predict(TheGStat, model=FittedModel, newdata=Grid.RubAr.RK)
@@ -977,7 +1286,8 @@ plot(variogram(d15N ~ 1, RubAr.RK)) # variogram
 
 d15N.RubAr.RK2 <- krige(d15N ~ 1, RubAr.RK, Grid.RubAr.RK) # ordinary kriging
 plotd15N.RubAr.krig.RK2<-spplot(d15N.RubAr.RK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
-       main=expression(paste(delta^{15}, N, "--RK (Afforested RubAr Plot)")))
+       main=expression(paste(delta^{15}, N, "--RK (Remnant RubAr Plot)")))
+plotd15N.RubAr.krig.RK2
 ```
 
   
@@ -1107,7 +1417,7 @@ plotd13C.krig.RK<-spplot(d13C.krig.RK["var1.pred"], col.regions=colorRampPalette
 
 
 ```
-```
+
 
 
 
