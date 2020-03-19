@@ -15,40 +15,30 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, message=FALSE, warning=FALSE, echo=FALSE}
-require("knitr")
+```{r global options, results="hide", warning=FALSE, message=FALSE}
+if (!require('knitr')) install.packages('knitr'); library('knitr')
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 
+# Load in packages
+if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
+
 # load packages
-suppressPackageStartupMessages({
-library("RgoogleMaps")
-library("SDMTools")
-library("rgdal")
-library("ggmap")
-library("gridExtra")
-library("automap")
-library("cowplot")
-library("sp")
-library("gstat")
-library("plotrix")
-library("dplyr") # for "glimpse"
-library("ggplot2")
-library("scales") # for "comma"
-library("magrittr")
-library("plyr")
-library("effects")
-})
+pacman::p_load("RgoogleMaps", "SDMTools", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats")
+
 ```
 
 ## Background  
 **Hakalau National Forest Wildlife Refuge Isoscapes**  
-Data collected 20-21 August 2019 in Hakalau Forest, Hawai'i Island. Soil and plant samples collected from remnant ko forests (*RK sites*) and those afforested/planted after a century of deforestation from cattle grazing (*AK sites*). Target engineers of forest habitats are *Acacia koa* (common name: koa), an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria. Understory species include *Rubus argutus* -- an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiiensis* (common name: 'Ākala); both are members of the Roseaceae family. Noteably, *R. argutus* was found more in the remnant plot (i.e., RK) and the indigenous *R. hawaiiensis* was common in the restored plot (i.e, AK). 
+Data collected 20-21 August 2019 in Hakalau Forest, Hawai'i Island. Soil and plant samples collected from  afforested/planted pots after a century of deforestation from cattle grazing (*AK sites*) and remnant koa forests (*RK sites*). Target engineers of forest habitats are *Acacia koa* (common Hawaiian name: *Koa*), an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria. Understory species include *Rubus argutus* -- an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiiensis* (common name: 'Ākala); both are members of the Roseaceae family. Noteably, *R. argutus* was found more in the remnant plot (i.e., RK) and the indigenous *R. hawaiiensis* was common in the restored plot (i.e, AK). 
 
-Soil samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a δ^13^C and δ^15^N stable isotope landscape, hereafter 'isoscape'. Koa and *Rubus* spp. were collected within each 4 x 5m sublot.
+Soil samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a δ^13^C and δ^15^N stable isotope landscape, hereafter 'isoscape'. Koa and *Rubus* spp. were collected within each 4 x 5m sublot.  
 
+*Plot densities were...*  
+AK: Koa (18 trees) Rubus (14 plants) per 20 x 35m plot= *0.026 Koa m^-2^, 0.020 Rubus m^-2^*
+RK: Koa (10 trees) Rubus (28 plants) per 20 x 35m plot= *0.014 Koa m^-2^, 0.040 Rubus m^-2^*
 
 ### Site Maps
-```{r, site maps}
+```{r, site maps, fig.cap="Figure 1. Site map of (a) the Hawaiian Island archipelago, (b) sampling plot in Hakalau Forest Refuge, and (c) plot layouts, highlighting *Acacia koa* density.", fig.align='center'}
 
 # load data
 Hak.gps<-read.csv("data/Hakalau.gps.csv")
@@ -62,61 +52,119 @@ ggplot(Hak.gps, aes(x = longitude, y = latitude)) +
 ######## using ggmap
 register_google(key=API.key)
 
+########
+#Hawaiian islands Map
+########
+hi_map<-get_map(location=c(-157,20.5),zoom=7,maptype="satellite",color="color")
+hi_map_for_man <- ggmap(hi_map) +
+  geom_point(aes(x = -155.320, y = 19.83), pch=23,colour="black",fill="red", size = 2, stroke=0.5) +
+  xlab("") + ylab("Latitude") +
+  scale_y_continuous(limits=c(18.8, 22.2))+
+  scale_x_continuous(limits=c(-160.2, -154)) +
+  theme(axis.text=element_text(colour="black",size=5),
+        axis.title=element_text(colour="black",size=8),
+        plot.margin = unit(c(0, 0.5, 0, 0.7), "cm")) +
+  ggsn::scalebar(x.min=-160.2, x.max=-154, y.min=18.8, y.max=22.2, dist=50, dist_unit="km", transform=TRUE,
+                 st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84",st.color="white", border.size=0.5)
+
+
+##########
+# site map plot showing distance from plots
+##########
 Hak.rev=c(-155.317, 19.82158002)
+
 map2<-get_map(Hak.rev, 
-                      zoom=17, 
+                      zoom=16, 
                       scale = 2, 
                       maptype= "satellite",
                       source="google", extent= "device", legend="topright")
 
-png(file= "figures/sitemap.test.png", height=5, width=5, units="in", res=300)
-par(oma=c(3,3,0,0))
-ggmap(map2)+
-  geom_point(aes(x=longitude, y=latitude), data=Hak.gps, alpha=0.5, color="dodgerblue", size=1)+
-  labs(x="Longitude", y="Latitude")
-dev.off()
+## site single point only
+site.only<-Hak.gps[c(1,5),]
+Hakalau.site<-
+  ggmap(map2)+
+  geom_point(aes(x=longitude, y=latitude), data=site.only, alpha=0.5, color="white", size=4)+
+  labs(x="", y="") +
+  scale_y_continuous(limits=c(19.81785, 19.8242))+
+  scale_x_continuous(limits=c(-155.3223, -155.311)) +
+  theme(text = element_text(size=6),
+       plot.margin = unit(c(0.2, 0.5, 0.2, 0.2), "cm")) +
+  annotate("text", x=-155.3187, y=19.8225, label= "AK", size=3, col="white") +
+  annotate("text", x=-155.31478, y=19.8224, label= "RK", size=3, col="white") +
+ggsn::scalebar(x.min=-155.314, x.max=-155.311, y.min=19.818, y.max=19.824, dist=100, 
+               dist_unit="m", transform=TRUE,
+              st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84",st.color="white", border.size=0.5)
+Hakalau.site
 
-# AK or RK only
+
+##########
+# Site plots: AK or RK only
+##########
 AK<- Hak.gps[(Hak.gps$Site=="AK"),]
 RK<- Hak.gps[(Hak.gps$Site=="RK"),]
 
 ####### AK map
 AK.gps<-c(-155.3189, lat=19.8219)
 mapAK<-get_map(AK.gps,
-              zoom=20, 
+              zoom=19, 
               scale = 2, 
               maptype= "satellite",
               source="google", extent= "device", legend="topright")
+
 AK.map<-ggmap(mapAK, group=type)+
   geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=AK, alpha=0.5, size=3)+
+  scale_y_continuous(limits=c(19.82165, 19.82225))+
+  scale_x_continuous(limits=c(-155.3194, -155.3183)) +
   theme(legend.position="top",
     legend.text = element_text(color = "white"),
     legend.title = element_text(color = "white"),
-    legend.key = element_rect(fill = "white")) +
+    legend.key = element_rect(fill = "white"),
+    plot.margin = unit(c(0, 0.5, 0, 0), "cm"),
+    text = element_text(size=8)) +
   guides(colour= guide_legend(override.aes = list(color = "white"))) +
   scale_color_manual(values=c('red','mediumseagreen'))+
-  labs(x="Longitude", y="Latitude") + ggtitle("AK-Aforested")
+  labs(x="Longitude", y="Latitude") +
+  annotate("text", x=-155.31925, y=19.82225, label= "Afforested (AK)", size=3, col="white")+
+  ggsn::scalebar(x.min=-155.3183, x.max=-155.3187, y.min=19.82165, y.max=19.82225, dist=10, 
+               dist_unit="m", transform=TRUE,
+              st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84", st.color="white", border.size=0.5)
 
 
 ####### RK map
+RK.edit<-RK[-12,] # remove "proximate" Koa
+RK.edit[9,3]<-"koa" # rename to be "koa"
+
 RK.gps<-c(-155.315, 19.8216)
 mapRK<-get_map(RK.gps,
-               zoom=20, 
+               zoom=19, 
                scale = 2, 
                maptype= "satellite",
                source="google", extent= "device", legend="topright")
+
 RK.map<-ggmap(mapRK, group=type)+
-  geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=RK, alpha=0.5, size=3)+
+  geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=RK.edit, alpha=0.5, size=3)+
   scale_color_manual(values=c('red','mediumseagreen', "dodgerblue"))+
-  scale_shape_manual(values=c(16, 17, 3))+
+  scale_shape_manual(values=c(16, 17, 3)) +
+  scale_y_continuous(limits=c(19.82120, 19.82195))+
+  scale_x_continuous(limits=c(-155.31575, -155.3144)) +
   theme(legend.position="top",
         legend.title=element_blank(), 
-        legend.key = element_rect(fill = "white"))+
-  labs(x="Longitude", y="") + ggtitle("RK-Remnant")
+        legend.key = element_rect(fill = "white"),
+        plot.margin = unit(c(0, 0.5, 0, 0), "cm"), 
+        text = element_text(size=8)) +
+  labs(x="Longitude", y="") +
+  annotate("text", x=-155.3156, y=19.82193, label= "Remnant (RK)", size=3, col="white")+
+  ggsn::scalebar(x.min=-155.3148, x.max=-155.3144, y.min=19.8212, y.max=19.8219, dist=10, 
+               dist_unit="m", transform=TRUE,
+              st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84", st.color="white", border.size=0.5)
+
+
+site.plots<-plot_grid(hi_map_for_man, Hakalau.site, AK.map, RK.map, 
+          labels=c('a', 'b', 'c', 'd'), label_size=8, hjust=-1, vjust= 2, ncol=2, nrow=2)
 
 ### export it
-png(file= "figures/RK.AK.sitemaps.png", height=5, width=9, units="in", res=300)
-grid.arrange(AK.map, RK.map, ncol = 2)
+pdf(file= "figures/Fig1.sitemaps.pdf", height=7, width=8)
+site.plots
 dev.off()
 
 ```
@@ -125,7 +173,7 @@ dev.off()
 - DBH calculations  
 - data mutating  
 - test scatters of all samples by habitat  
-```{r, Hak data}
+```{r, Hak data, fig.show=FALSE}
 Hak.df<-read.csv("data/Hakalau.isotopes.csv")
 
 ########## DBH 
@@ -173,7 +221,7 @@ Hak.df$Canopy.area<-Can.df$Canopy.area
 
 # Hak.data is the full dataframe
 Hak.data<- Hak.df %>%
-  select(c(Plot, Sample, DBH.Total, Canopy.area, d15N, d13C, N..percent, Total.N..mmol.gdw, C..percent, Total.C..mmol.gdw, C.N))
+  select(c(Plot, Position.point, Sample, DBH.Total, Canopy.area, d15N, d13C, N..percent, Total.N..mmol.gdw, C..percent, Total.C..mmol.gdw, C.N))
 
 ########################
 ########################
@@ -199,14 +247,62 @@ plot_grid(iso.scatter, total.nut,
 dev.copy(pdf, "figures/scatter.data.pdf", width=7, height=4, encod="MacRoman")
 dev.off()
 ```
+  
+#### Rubus and Koa relationship  
+- plotting the relationship between Rubus and Koa d15N  
+- took average of 3 closest Koa trees to each Rubus plant  
+- plot Rubus d15N against Koa d15N (mean of 3 trees)  
 
+```{r rubus and koa, fig.cap="Figure 2a. Relationship between d15N-Koa and 15N-Rubus at two sampling sites.", fig.align='center'}
+Ndfa<-read.csv("data/Ndfa.Rub.csv")
+
+# rename the d15N so we know it is for rubus
+Ndfa$d15N.Rub<-Ndfa$d15N
+Ndfa$d15N.Koa<-Ndfa$mean.d15N.Ndfa
+
+####################
+#################### relationship between koa and rubus d15N?
+# Yes, but a bit stronger in the RK site
+mod.AK<-lm(Ndfa[(Ndfa$Plot=="AK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="AK"),]$mean.d15N.Ndfa); anova(mod.AK)
+int.rubAK<-coef(summary(mod.AK))[1] #intercept
+slop.rubAK<-coef(summary(mod.AK))[2] #slope
+                                  
+mod.RK<-lm(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="RK"),]$mean.d15N.Ndfa); anova(mod.RK)
+int.RKoa<-coef(summary(mod.RK))[1] #intercept
+slop.RKoa<-coef(summary(mod.RK))[2] #slope
+
+#### plot
+BW.back<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size=0.2))
+
+Rub.Koa.d15N.plot<-ggplot(data=Ndfa, aes(x=d15N.Koa, y=d15N.Rub, color=Plot))+
+  geom_point(aes(color=Plot), alpha=.8) + 
+  scale_color_manual(values=c("coral", "dodgerblue")) +
+  coord_equal() + theme_bw() +
+  xlab(expression(paste(italic("Acacia koa "), delta^{15}, N, " (\u2030)"), sep=""))+
+  ylab(expression(paste(italic("Rubus"), " spp. ", delta^{15}, N, " (\u2030)"), sep="")) +
+  guides(colour=guide_legend(override.aes = list(stroke=1, fill=NA, alpha=1))) +
+  geom_smooth(method = "lm", alpha = .1, aes(fill = Plot), size=0.6) +
+  theme(legend.title = element_blank(),
+        axis.text=element_text(size=6),
+        axis.title=element_text(size=10))+
+  annotate(geom="text", x=2.7, y=0.8, label=expression(paste("AK ", italic("p"), "=0.056")), size=2) +
+  annotate(geom="text", x=2.7, y=0.6, label=expression(paste("RK ", italic("p="), bold("0.006"))), size=2) +
+  BW.back
+
+Rub.Koa.d15N.plot
+dev.copy(pdf, "figures/Rub.Koa.d15N.plot.pdf", width=4, height=4, encod="MacRoman")
+dev.off()
+```
+  
+  
 #### Degree of nitrogen fixation (Ndfa %)  
 - the degree of nitrogen fixation takes into account the target nitrogen fixer (Koa) and a non-fixing reference plant (Rubus spp.) and Beta. Beta is the value when all nitrgen % in fixing plat comes from nitrogen fixation and is estimated, usually as -2 to 0. The formula is:  
 $Ndfa (\%) = (δ^{15}N~ref~ - δ^{15}N~fixer~) / (δ^{15}N~ref~ - Beta)* 100$   
 
 Here we use Rubus maximum, site median, and group media d15N values as reference plants and a Beta of -1 and -2 to see the % Ndfa of Koa across its range of d15N values.   
 
-```{r Beta Ndfa}
+```{r Beta Ndfa, fig.cap="Figure 2b-c. The degree of fixed nitrogen from the atmospheric (Ndfa) contributing to Acacia koa percent nitrogen using two assumptions for Beta (δ15N value where Ndfa=100%)", fig.align='center'}
 # Beta and Ndfa
 # ability for Koa to fix
 
@@ -244,6 +340,9 @@ RK.Koa.df<-Ndfa.RK[(Ndfa.RK$Sample=="Koa"),]
 
 
 ##### Beta -1 plot
+Beta.neg1<- -1
+Beta.neg2<- -2
+
 # Beta negative 1
 # AK koa Ndfa
 AK.Koa.df.betneg1<- AK.Koa.df %>%
@@ -266,7 +365,7 @@ All.Koa.neg1<- All.Koa %>%
 
 
 ## Max
-par(mfrow=c(1,2), mar=c(5,5,4,2))
+par(mfrow=c(1,2), mar=c(5,5,3,3))
 
 # build empty plot
 plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.max, yaxt="n", xaxt="n", ylim=c(-2,3.5), xlim=c(100, -30), 
@@ -289,45 +388,46 @@ par(new=T)
 x <- seq(-40,100, 1) # sequence
 ymax.AK <- x*(B1.mod.AKoa.max$coefficients[2])+B1.mod.AKoa.max$coefficients[1] # x*slope + intercept
 ymed.AK <- x*(B1.mod.AKoa.med$coefficients[2])+B1.mod.AKoa.med$coefficients[1]
-polygon(c(rev(x), x),c(rev(ymax.AK), ymed.AK),col=adjustcolor("salmon",alpha.f=0.2), border=NA)
+polygon(c(rev(x), x),c(rev(ymax.AK), ymed.AK),col=adjustcolor("coral",alpha.f=0.2), border=NA)
 
 #for RK
 ymax.RK <- x*(B1.mod.RKoa.max$coefficients[2])+B1.mod.RKoa.max$coefficients[1] # x*slope + intercept
 ymed.RK <- x*(B1.mod.RKoa.med$coefficients[2])+B1.mod.RKoa.med$coefficients[1]
-polygon(c(rev(x), x),c(rev(ymax.RK), ymed.RK),col=adjustcolor("lightseagreen",alpha.f=0.2), border=NA)
+polygon(c(rev(x), x),c(rev(ymax.RK), ymed.RK),col=adjustcolor("dodgerblue",alpha.f=0.2), border=NA)
 
 # plot points and model fits
 par(new=T)
 
 # AK 
-plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.max, col="salmon", xlab="Ndf-koa (%)",
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.max, col="coral",
+     xlab=expression(paste("Ndfa-", italic("Acacia koa"), " (%)", sep="")),
      ylab= expression(paste(delta^{15}, N, " (\u2030)")), cex.axis=0.7, main= "Beta = -1", cex.main=0.7,
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
 
 #RK
 par(new=T)
-plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.max, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.max, col="dodgerblue", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
-legend("topleft", legend= c("AK", "RK"), bg="transparent", 
-       col=c("salmon", "lightseagreen"), 
+legend(x=135, y=3.7, x.intersp =0.15, cex=0.8, legend= c("AK", "RK"), bg="transparent", 
+       col=c("coral", "dodgerblue"), 
        pch=20, box.lty=0)
 
 # add model lines
 abline(B1.mod.AKoa.max, col="coral", lty=1)
-abline(B1.mod.RKoa.max, col="darkcyan", lty=1)
+abline(B1.mod.RKoa.max, col="royalblue3", lty=1)
 
 ## Median
 # AK 
 par(new=T)
-plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.med, col="salmon", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.med, col="coral", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
 
 #RK
 par(new=T)
-plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.med, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.med, col="dodgerblue", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
-legend("bottom", legend= c("max", "site median", "group  median"), bg="transparent",
-       col="black", lty=c(1,4,5), seg.len=1, cex=0.6, box.lty=0)
+legend(x=95, y=-1, x.intersp =0.25, legend= c("max", "site median", "pooled  median"), bg="transparent",
+       col="black", lty=c(1,4,5), seg.len=0.4, cex=0.7, box.lty=0, pch=c(16,16,1))
 
 # model
 B1.mod.AKoa.med<-lm(d15N~nfix.AK.med, data=AK.Koa.df.betneg1)
@@ -335,7 +435,7 @@ B1.mod.RKoa.med<-lm(d15N~nfix.RK.med, data=RK.Koa.df.betneg1)
 
 # add model lines
 abline(B1.mod.AKoa.med, col="coral", lty=4)
-abline(B1.mod.RKoa.med, col="darkcyan", lty=4)
+abline(B1.mod.RKoa.med, col="royalblue3", lty=4)
 
 
 ###
@@ -346,12 +446,13 @@ abline(B1.mod.allKoa.med, col="gray40", lty=5)
 
 par(new=T)
 #AK
-plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.all.med, col="salmon", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.all.med, col="coral", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=21, bg="white")
 
 par(new=T)
 #RK
-plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.all.med, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.all.med, col="dodgerblue", xlab="", ylab= "", 
+     bty="n", xaxt="n", yaxt="n", 
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=21, bg="white")
 
 # means, add to plot
@@ -361,7 +462,7 @@ RK.mean.nfix<-mean(RK.Koa.df.betneg1$nfix.RK.all.med) # mean 12.3
 RK.mean.d15N<-mean(RK.Koa.df.betneg1$d15N) # mean 2.15
 
 points(x=AK.mean.nfix, y=AK.mean.d15N, pch=3, col="firebrick3", lwd=1.5, cex=0.9) # AK means
-points(x=RK.mean.nfix, y=RK.mean.d15N, pch=3, col="darkgreen", lwd=1.5, cex=0.9) # RK means
+points(x=RK.mean.nfix, y=RK.mean.d15N, pch=3, col="blue", lwd=1.5, cex=0.9) # RK means
 
 
 
@@ -414,40 +515,41 @@ par(new=T)
 x <- seq(-40,100, 1) # sequence
 ymax.AK <- x*(B1.mod.AKoa.max$coefficients[2])+B1.mod.AKoa.max$coefficients[1] # x*slope + intercept
 ymed.AK <- x*(B1.mod.AKoa.med$coefficients[2])+B1.mod.AKoa.med$coefficients[1]
-polygon(c(rev(x), x),c(rev(ymax.AK), ymed.AK),col=adjustcolor("salmon",alpha.f=0.2), border=NA)
+polygon(c(rev(x), x),c(rev(ymax.AK), ymed.AK),col=adjustcolor("coral",alpha.f=0.2), border=NA)
 
 #for RK
 ymax.RK <- x*(B1.mod.RKoa.max$coefficients[2])+B1.mod.RKoa.max$coefficients[1] # x*slope + intercept
 ymed.RK <- x*(B1.mod.RKoa.med$coefficients[2])+B1.mod.RKoa.med$coefficients[1]
-polygon(c(rev(x), x),c(rev(ymax.RK), ymed.RK),col=adjustcolor("lightseagreen",alpha.f=0.2), border=NA)
+polygon(c(rev(x), x),c(rev(ymax.RK), ymed.RK),col=adjustcolor("dodgerblue",alpha.f=0.2), border=NA)
 
 # plot points and model fits
 par(new=T)
 
 # AK 
-plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.max, col="salmon", xlab="Ndf-koa (%)",
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.max, col="coral",
+    xlab=expression(paste("Ndfa-", italic("Acacia koa"), " (%)", sep="")),
     cex.axis=0.7, main= "Beta = -2", cex.main=0.7, ylab="",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
 
 #RK
 par(new=T)
-plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.max, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.max, col="dodgerblue", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
 
 
 # add model lines
 abline(B1.mod.AKoa.max, col="coral", lty=1)
-abline(B1.mod.RKoa.max, col="darkcyan", lty=1)
+abline(B1.mod.RKoa.max, col="royalblue3", lty=1)
 
 ## Median
 # AK 
 par(new=T)
-plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.med, col="salmon", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.med, col="coral", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
 
 #RK
 par(new=T)
-plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.med, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.med, col="dodgerblue", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
 
 
@@ -457,7 +559,7 @@ B1.mod.RKoa.med<-lm(d15N~nfix.RK.med, data=RK.Koa.df.betneg2)
 
 # add model lines
 abline(B1.mod.AKoa.med, col="coral", lty=4)
-abline(B1.mod.RKoa.med, col="darkcyan", lty=4)
+abline(B1.mod.RKoa.med, col="royalblue3", lty=4)
 
 
 ###
@@ -469,13 +571,16 @@ abline(B1.mod.allKoa.med, col="gray40", lty=5)
 
 par(new=T)
 #AK
-plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.all.med, col="salmon", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.all.med, col="coral", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=21, bg="white")
 
 par(new=T)
 #RK
-plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.all.med, col="lightseagreen", xlab="", ylab= "", xaxt="n", yaxt="n",
+plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.all.med, col="dodgerblue", xlab="", ylab= "", 
+     xaxt="n", yaxt="n", bty="n",
      ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=21, bg="white")
+legend(x=110, y=-1.5, x.intersp =0.25, legend= c("AK-mean", "RK-mean"), bg="transparent",
+       col=c("firebrick3", "blue"), cex=0.6, box.lty=0, pch=3)
 
 # means, add to plot
 AK.mean.nfix<-mean(AK.Koa.df.betneg2$nfix.AK.all.med) # mean 28.4
@@ -484,10 +589,10 @@ RK.mean.nfix<-mean(RK.Koa.df.betneg2$nfix.RK.all.med) # mean 9.64
 RK.mean.d15N<-mean(RK.Koa.df.betneg2$d15N) # mean 2.25
 
 points(x=AK.mean.nfix, y=AK.mean.d15N, pch=3, col="firebrick3", lwd=1.5, cex=0.9) # AK means
-points(x=RK.mean.nfix, y=RK.mean.d15N, pch=3, col="darkgreen", lwd=1.5, cex=0.9) # RK means
+points(x=RK.mean.nfix, y=RK.mean.d15N, pch=3, col="blue", lwd=1.5, cex=0.9) # RK means
 
 
-dev.copy(pdf, "figures/Ndfa.pdf", width=8, height=5, encod="MacRoman")
+dev.copy(pdf, "figures/Ndfa.pdf", width=7, height=5, encod="MacRoman")
 dev.off()
 
 
@@ -527,44 +632,13 @@ anova(lm(allfix.med~Plot, data=Beta2.df)) # med *p=0.114
 
 ```
 
-#### Rubus and Koa relationship
 
-```{r rubus and koa}
-Ndfa<-read.csv("data/Ndfa.Rub.csv")
-
-# rename the d15N so we know it is for rubus
-Ndfa$d15N.Rub<-Ndfa$d15N
-Ndfa$d15N.Koa<-Ndfa$mean.d15N.Ndfa
-
-####################
-#################### relationship between koa and rubus d15N?
-# Yes, but a bit stronger in the RK site
-mod.AK<-lm(Ndfa[(Ndfa$Plot=="AK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="AK"),]$mean.d15N.Ndfa); anova(mod.AK)
-int.rubAK<-coef(summary(mod.AK))[1] #intercept
-slop.rubAK<-coef(summary(mod.AK))[2] #slope
-                                  
-mod.RK<-lm(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="RK"),]$mean.d15N.Ndfa); anova(mod.RK)
-int.RKoa<-coef(summary(mod.RK))[1] #intercept
-slop.RKoa<-coef(summary(mod.RK))[2] #slope
-
-#### plot
-plot(Ndfa$d15N.Rub~Ndfa$d15N.Koa, col=Ndfa$Plot, xlab="Koa d15N (permil)", ylab= "Rubus d15N (permil)")
-legend("topleft", legend=levels(Ndfa$Plot), col=c("black", "red"), lwd=1, pch=21, box.lty=0)
-ablineclip(int.rubAK, slop.rubAK, col="black",
-           x1 = min(Ndfa[(Ndfa$Plot=="AK"),]$d15N.Koa, na.rm=T), 
-           x2 = max(Ndfa[(Ndfa$Plot=="AK"),]$d15N.Koa, na.rm=T)) # AK model
-ablineclip(int.RKoa, slop.RKoa, col="red",
-           x1 = min(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Koa, na.rm=T), 
-           x2 = max(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Koa, na.rm=T)) # RK model
-
-
-```
 #### DBH, Canopy  d15N models  
 - plot against d15N values with model curves
 - scatters with models
 - d15N differ by PLOT (AK vs RK), no other effects
 
-```{r, d15N and DBH and Canopy}
+```{r, d15N and DBH Canopy, eval=FALSE}
 ######## plot of d15N and DBH, and d15N and Canopy area
 
 # all samples
@@ -581,7 +655,7 @@ RK.int<-coef(summary(mod.DBH))["PlotRK",1] # RK, AK = 0
 
 # no significant relationship to d15N but a trend for DECREASE with DBH
 plot(d15N~DBH.Total, data=Hak.data,
-    col=c("salmon","lightseagreen")[as.factor(Plot)],
+    col=c("coral","dodgerblue")[as.factor(Plot)],
     pch=c(1,2)[as.factor(Plot)],
     ylab=expression(paste(delta^{15}, N, " (\u2030, air)")),
     xlab="DBH (cm)",
@@ -589,7 +663,7 @@ plot(d15N~DBH.Total, data=Hak.data,
     ablineclip(int, DBH.slope, col="coral", lwd=2, 
                x1 = min(Hak.data$DBH.Total[Hak.data$Plot=="AK"], na.rm=T), 
                x2 = max(Hak.data$DBH.Total[Hak.data$Plot=="AK"], na.rm=T)) # AK model
-    ablineclip((int+ RK.int), DBH.slope, col="lightseagreen", lwd=2, 
+    ablineclip((int+ RK.int), DBH.slope, col="dodgerblue", lwd=2, 
                x1 = min(Hak.data$DBH.Total[Hak.data$Plot=="RK"], na.rm=T), 
                x2 = max(Hak.data$DBH.Total[Hak.data$Plot=="RK"], na.rm=T)) # RK model
 
@@ -604,38 +678,38 @@ RK.int<-coef(summary(mod.Can))["PlotRK",1] # RK, AK = 0
 
 # no significant relationship to d15N but a trend for INCREASE with canopy area
 plot(d15N~Canopy.area, data=Hak.data, yaxt="n",
-     col=c("salmon","lightseagreen")[as.factor(Plot)],
+     col=c("coral","dodgerblue")[as.factor(Plot)],
      pch=c(1,2)[as.factor(Plot)],
      xlab=expression(paste("Canopy (m"^2,")")),
      ylab="", 
      ylim=c(0,5), xlim=c(0,80))
      axis(side=2, labels=F)
-     ablineclip(int, Can.slope, col="salmon", lwd=2, 
+     ablineclip(int, Can.slope, col="coral", lwd=2, 
                x1 = min(Hak.data$Canopy.area[Hak.data$Plot=="AK"], na.rm=T), 
                x2 = max(Hak.data$Canopy.area[Hak.data$Plot=="AK"], na.rm=T)) # AK model
-     ablineclip((int+ RK.int), Can.slope, col="lightseagreen", lwd=2, 
+     ablineclip((int+ RK.int), Can.slope, col="dodgerblue", lwd=2, 
                x1 = min(Hak.data$Canopy.area[Hak.data$Plot=="RK"], na.rm=T), 
                x2 = max(Hak.data$Canopy.area[Hak.data$Plot=="RK"], na.rm=T)) # RK model
      legend("topright", legend=levels(Hak.data$Plot), box.lty=0, bg="transparent", lty=1, pch=c(1,2), 
-            col=c("salmon", "lightseagreen"), cex=1)
+            col=c("coral", "dodgerblue"), cex=1)
 
 dev.copy(pdf, "figures/d15N.DBH.Canopy.pdf", width=7, height=5, encod="MacRoman")
 dev.off()
 ```
   
 With Plot being most important effect, divide DBH and Canopy to be plot mean +/- SE  
-  
-*Figure 1. with afforested and remnant forests*   
+*Supplemental Figure 1. with afforested and remnant forests*   
 - DBH and Canopy figure as bar chart and means
-- significant plot effects  
+- using Mann-Whitney nonparametric tests: significant plot effects
 - greater DBH (AK), trend for greater Canopy (RK)  
-```{r mean plots for DBH and Canopy}
+  
+```{r mean plots for DBH and Canopy, Fig.cap="Supplementary Figure 1. Mean +/- SE diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center'}
 ## Models
 mod.DBH<-lm(DBH.Total~Plot, data=Hak.data); anova(mod.DBH) # signif
 mod.Can<-lm(Canopy.area~Plot, data=Hak.data); anova(mod.Can) # not signif, a bit wobbly in assumptions
 
 # diagnostic plots
-for(i in c(3:4)){
+for(i in c(4:5)){
   Y<-Hak.data[,i]
   full<-lm(Y~Plot, data=Hak.data, na.action=na.exclude)
   R <- resid(full) #save glm residuals
@@ -660,37 +734,47 @@ Can.SE<-aggregate(Canopy.area~Plot, data=Hak.data, std.error)
 
 mean.eco<-cbind(DBH.m, Can.m[2], DBH.SE[2], Can.SE[2]); colnames(mean.eco)<-c("Plot", "DBH", "Can", "D.SE", "C.SE")
 
-# format #
-BW.back<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black"))
+pd <- position_dodge(0.7) #offset for error bars
+
+BW.back2<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size=0.4))
 
 ### DBH plot of mean/SE by plot
 DBH.plot<-ggplot(data=mean.eco, aes(x=Plot, y=DBH))+
   geom_bar(stat="identity", position = pd, width=0.7, fill="gray70")+
   geom_errorbar(aes(ymin=DBH-D.SE, ymax=DBH+D.SE), size=.5, width=0, position=pd) +
   xlab("Plots") +
-  ylab("DBH (cm)") + BW.back
+  ylab("DBH (cm)") + 
+  theme(legend.title = element_blank(),
+        axis.text=element_text(size=6),
+        axis.title=element_text(size=8))+
+  annotate(geom="text", x=1.5, y=35, label=expression(paste(bold("*"))), size=4) +
+  BW.back2
 
 ### Canopy plot of mean/SE by plot
 Canopy.plot<-ggplot(data=mean.eco, aes(x=Plot, y=Can))+
   geom_bar(stat="identity", position = pd, width=0.7, fill="gray70")+
   geom_errorbar(aes(ymin=Can-C.SE, ymax=Can+C.SE), size=.5, width=0, position=pd) +
   xlab("Plots") +
-  ylab(expression(paste("Canopy (m"^2,")"))) + BW.back
+  ylab(expression(paste("Canopy (m"^2,")"))) + 
+  theme(legend.title = element_blank(),
+        axis.text=element_text(size=6),
+        axis.title=element_text(size=8))+
+  BW.back2
 
 #  figures together
 plot_grid(DBH.plot, Canopy.plot,
-     labels=c('a', 'b'), label_size=10, hjust=-1, vjust= 3, ncol=2, nrow=1)
-dev.copy(pdf, "figures/DBHCanopy.means.pdf", width=7, height=4, encod="MacRoman")
+     labels=c('a', 'b'), label_size=8, hjust=-1, vjust= 3, ncol=2, nrow=1)
+dev.copy(pdf, "figures/Supp.Fig1.DBHCanopy.pdf", width=4, height=3.5, encod="MacRoman")
 dev.off()
 
 ```
  
- 
-data means and SE for plots
+*Supplemental Figure 2*   
+data means and SE for plots  
 - bar plots of d13C, d15N, TC and TN for all 4 samples types. 
-- perhaps not to be included in paper, but good visual
-```{r, scatter plots of isotope data}
+
+```{r, plots of isotope data, Fig.cap="Supplementary Figure 2. Mean +/- SE of sample (a) d13C, (b) d15N, (c) total carbon, and (d) total nitrogen.", fig.align='center'}
 ## make some means and SE
 d13C.m<-aggregate(d13C~Plot+Sample, data=Hak.data, mean)
 d15N.m<-aggregate(d15N~Plot+Sample, data=Hak.data, mean)
@@ -705,6 +789,9 @@ TC.SE<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=Hak.data, std.error)
 mean.data<- cbind(d13C.m, d15N.m[3], TN.m[3], TC.m[3], d13C.SE[3], d15N.SE[3], TN.SE[3], TC.SE[3])
 colnames(mean.data)<-c("Plot", "Sample", "d13C.mean", "d15N.mean", "TN.mean", "TC.mean", "d15N.SE", "d13C.SE", "TN.SE", "TC.SE")
 
+# rename Rubus species for plotting
+levels(mean.data$Sample)[levels(mean.data$Sample)=="RUBARG"] <- "Rubus spp"
+levels(mean.data$Sample)[levels(mean.data$Sample)=="RUBHAW"] <- "Rubus spp"
 
 ### make mean plots
 pd <- position_dodge(0.7) #offset for error bars
@@ -712,49 +799,66 @@ pd <- position_dodge(0.7) #offset for error bars
 ### d13C
 d13C.plot<-ggplot(data=mean.data, aes(x=Plot, y=d13C.mean, fill=Sample, group=Sample))+
   geom_bar(stat="identity", position = pd, width=0.7)+
-  geom_errorbar(aes(ymin=d13C.mean-d13C.SE, ymax=d13C.mean+d13C.SE), size=.5, width=0, position=pd) +
-  scale_fill_manual(values=c('skyblue1','mediumseagreen', "seagreen", "goldenrod")) +
-  xlab("Plots") +
-  ylab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)")))
+  geom_errorbar(aes(ymin=d13C.mean-d13C.SE, ymax=d13C.mean+d13C.SE), size=.3, width=0, position=pd) +
+  scale_fill_manual(values=c('skyblue1','mediumseagreen', "goldenrod")) +
+  xlab("Plots") + 
+  annotate(geom="text", x=1.5, y=-30, label=expression(paste(bold("*"))), size=4) +
+  theme(text = element_text(size=8)) +
+  ylab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))) + BW.back2
 
 ### d15N
 d15N.plot<-ggplot(data=mean.data, aes(x=Plot, y=d15N.mean, fill=Sample, group=Sample))+
   geom_bar(stat="identity", position = pd, width=0.7)+
-  geom_errorbar(aes(ymin=d15N.mean-d15N.SE, ymax=d15N.mean+d15N.SE), size=.5, width=0, position=pd) +
-  scale_fill_manual(values=c('skyblue1','mediumseagreen', "seagreen", "goldenrod")) +
-  xlab("Plots") +
-  ylab(expression(paste(delta^{15}, N, " (\u2030, air)")))
+  geom_errorbar(aes(ymin=d15N.mean-d15N.SE, ymax=d15N.mean+d15N.SE), size=.3, width=0, position=pd) +
+  scale_fill_manual(values=c('skyblue1','mediumseagreen', "goldenrod")) +
+  xlab("Plots") + 
+  theme(text = element_text(size=8)) +
+  annotate(geom="text", x=1.5, y=5, label=expression(paste(bold("*"))), size=4) +
+  ylab(expression(paste(delta^{15}, N, " (\u2030, air)"))) + BW.back2
 
 ### total Carbon
 TC.plot<-ggplot(data=mean.data, aes(x=Plot, y=TC.mean, fill=Sample, group=Sample))+
   geom_bar(stat="identity", position = pd, width=0.7)+
-  geom_errorbar(aes(ymin=TC.mean-TC.SE, ymax=TC.mean+TC.SE), size=.5, width=0, position=pd) +
-  scale_fill_manual(values=c('skyblue1','mediumseagreen', "seagreen", "goldenrod")) +
-  xlab("Plots") +
-  ylab("Total Carbon")
+  geom_errorbar(aes(ymin=TC.mean-TC.SE, ymax=TC.mean+TC.SE), size=.3, width=0, position=pd) +
+  scale_fill_manual(values=c('skyblue1','mediumseagreen', "goldenrod")) +
+  xlab("Plots") + 
+  theme(text = element_text(size=8)) +
+  annotate(geom="text", x=1.5, y=35, label=expression(paste(bold("*"))), size=4) +
+  ylab("Total Carbon (mmol/gdw)") + BW.back2
 
 ### total Nitrogen
 TN.plot<-ggplot(data=mean.data, aes(x=Plot, y=TN.mean, fill=Sample, group=Sample))+
   geom_bar(stat="identity", position = pd, width=0.7)+
-  geom_errorbar(aes(ymin=TN.mean-TN.SE, ymax=TN.mean+TN.SE), size=.5, width=0, position=pd) +
-  scale_fill_manual(values=c('skyblue1','mediumseagreen', "seagreen", "goldenrod")) +
-  xlab("Plots") +
-  ylab("Total Nitrogen")
+  geom_errorbar(aes(ymin=TN.mean-TN.SE, ymax=TN.mean+TN.SE), size=.3, width=0, position=pd) +
+  scale_fill_manual(values=c('skyblue1','mediumseagreen', "goldenrod")) +
+  xlab("Plots") + 
+  theme(text = element_text(size=8)) +
+  ylab("Total Nitrogen (mmol/gdw)") + BW.back2
+
+# get the legend, # create some space to the left of the legend
+bar.legend <- get_legend(
+  TN.plot + theme(legend.box.margin = margin(0, 0, 0, 12)) + 
+    theme(legend.key.size = unit(0.3, "cm")))
 
 #  figures together
-plot_grid(d13C.plot, d15N.plot, TC.plot, TN.plot,
-     labels=c('a', 'b', 'c', 'd'), label_size=10, hjust=-1, vjust= 3, ncol=2, nrow=2)
-dev.copy(pdf, "figures/mean.data.plots.pdf", width=7, height=7, encod="MacRoman")
+bar.plots<-plot_grid(d13C.plot + theme(legend.position = "none"),
+          d15N.plot + theme(legend.position = "none"), 
+          TC.plot + theme(legend.position = "none"),
+          TN.plot + theme(legend.position = "none"), nrow=1, ncol=4, labels=c('a', 'b', 'c', 'd'), 
+          label_size=8, hjust=-1, vjust= 3)
+
+plot_grid(bar.plots, bar.legend, rel_widths = c(8, 1)) # legend  1/8 size as first obj.
+dev.copy(pdf, "figures/Supp.Fig2.mean.data.plots.pdf", width=7, height=3, encod="MacRoman")
 dev.off()
 ```
 
 Run statistics on the responses
-```{r, stats on responses}
+```{r, stats on responses, results='hide', fig.show=FALSE}
 #########
 # models
 
 ## tests for assumptions
-for(i in c(5:11)){
+for(i in c(6:12)){
   Y<-Hak.data[,i]
   full<-lm(Y~Plot*Sample, data=Hak.data, na.action=na.exclude)
   R <- resid(full) #save glm residuals
@@ -825,7 +929,25 @@ plot(allEffects(lm(C.N~Plot +Sample, data=Hak.data))) # main effects
 tukey<-TukeyHSD(CN.av); tukey
 
 ```
+**d13C model**
+```{r, d13C}
+summary(d13C.av)
+```
+**d15N model**
+```{r, d15N}
+summary(d15N.av)
+```
+**Carbon content model**
+```{r, C content}
+summary(TC.av)
+```
+**Nitrogen content model**
+```{r, N content}
+summary(TN.av)
+```
   
+  
+###ISO-KRIG
 Give the data a "krig-over".  
   
 First, make krigs of the full plot and all data layers
@@ -1524,7 +1646,7 @@ plotd13C.krig.RK<-spplot(d13C.krig.RK["var1.pred"], col.regions=colorRampPalette
 
 
 
-```{r, kriging test, include=FALSE}
+```{r, kriging test, include=FALSE, eval=FALSE}
 ### Testing Kriging
 ################################################
 
@@ -1628,15 +1750,4 @@ test.krig %>% as.data.frame %>%
   theme_bw()
 ```
 
-
-
-```{r}
-
-
-```
-
-
-```{r}
-
-```
 
