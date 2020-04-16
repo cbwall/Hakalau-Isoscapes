@@ -297,10 +297,10 @@ dev.off()
   
   
 #### Degree of nitrogen fixation (Ndfa %)  
-- the degree of nitrogen fixation takes into account the target nitrogen fixer (Koa) and a non-fixing reference plant (Rubus spp.) and Beta. Beta is the value when all nitrgen % in fixing plat comes from nitrogen fixation and is estimated, usually as -2 to 0. The formula is:  
+- the degree of nitrogen fixation takes into account the target nitrogen fixer (Koa) and a non-fixing reference plant (Rubus spp.) and Beta. Beta is the value when all nitrgen % in fixing plant comes from nitrogen fixation and is estimated, usually as -2 to 0. The formula is:  
 $Ndfa (\%) = (δ^{15}N~ref~ - δ^{15}N~fixer~) / (δ^{15}N~ref~ - Beta)* 100$   
 
-Here we use Rubus maximum, site median, and group media d15N values as reference plants and a Beta of -1 and -2 to see the % Ndfa of Koa across its range of d15N values.   
+Here we use Rubus spp. maximum and median d15N values (pooled across sites) are used as reference plants and a Beta of -1 and -2 to see the % Ndfa of Koa across its range of d15N values.   
 
 ```{r Beta Ndfa, fig.cap="Figure 2b-c. The degree of fixed nitrogen from the atmospheric (Ndfa) contributing to Acacia koa percent nitrogen using two assumptions for Beta (δ15N value where Ndfa=100%)", fig.align='center'}
 # Beta and Ndfa
@@ -327,10 +327,13 @@ RK.R.max<-max(Ndfa.RK[(Ndfa.RK$Sample=="RUBARG"),]$d15N) # 4.53
 RK.R.med<-median(Ndfa.RK[(Ndfa.RK$Sample=="RUBARG"),]$d15N) # 3.03
 RK.R.av<-mean(Ndfa.RK[(Ndfa.RK$Sample=="RUBARG"),]$d15N) # 2.93
 
-# all mean, all mode
+############## TO USE
+# all mean, all min, all max
 All.Rub<-Ndfa.Hak[(Ndfa.Hak$Sample=="RUBHAW" | Ndfa.Hak$Sample=="RUBARG"),]
 Rub.av<-mean(All.Rub$d15N) # 2.59
 Rub.med<-median(All.Rub$d15N) # 2.59
+Rub.min<-min(All.Rub$d15N) # 0.6
+Rub.max<-max(All.Rub$d15N) # 4.53
 
 # AK and RK Koa dataframes
 All.Koa<- Ndfa.Hak[(Ndfa.Hak$Sample=="Koa"),]
@@ -338,11 +341,236 @@ All.Koa<- Ndfa.Hak[(Ndfa.Hak$Sample=="Koa"),]
 AK.Koa.df<-Ndfa.AK[(Ndfa.AK$Sample=="Koa"),]
 RK.Koa.df<-Ndfa.RK[(Ndfa.RK$Sample=="Koa"),]
 
-
 ##### Beta -1 plot
 Beta.neg1<- -1
 Beta.neg2<- -2
 
+
+#####################
+# Beta negative 1
+# AK koa Ndfa
+All.Koa.betaneg1<- All.Koa %>%
+  mutate(nfix.min = (Rub.min - d15N)/(Rub.min-Beta.neg1)*100) %>%
+  mutate(nfix.max = (Rub.max - d15N)/(Rub.max-Beta.neg1)*100)  %>%
+  mutate(nfix.med = (Rub.med - d15N)/(Rub.med-Beta.neg1)*100)
+
+##### Site specific
+# Beta negative 1
+# AK koa Ndfa
+AK.Koa.df.betneg1<- AK.Koa.df %>%
+  mutate(nfix.AK.min = (Rub.min - d15N)/(Rub.min-Beta.neg1)*100) %>%
+  mutate(nfix.AK.max = (Rub.max - d15N)/(Rub.max-Beta.neg1)*100)  %>%
+  mutate(nfix.AK.med = (Rub.med - d15N)/(Rub.med-Beta.neg1)*100)
+
+# RK koa Ndfa
+RK.Koa.df.betneg1<- RK.Koa.df %>%
+  mutate(nfix.RK.min = (Rub.min - d15N)/(Rub.min-Beta.neg1)*100) %>%
+  mutate(nfix.RK.max = (Rub.max - d15N)/(Rub.max-Beta.neg1)*100)  %>%
+  mutate(nfix.RK.med = (Rub.med - d15N)/(Rub.med-Beta.neg1)*100)
+
+
+## Max
+par(mfrow=c(1,2), mar=c(5,5,3,3))
+
+# build empty plot
+plot(data=All.Koa.betaneg1, d15N~nfix.max, yaxt="n", xaxt="n", ylim=c(-2,3.5), xlim=c(100, -30), 
+     xlab="", ylab="", type="n")
+
+# add shaded areas
+# max and median are highest and lowest respectively
+
+# models Max
+B1.mod.Koa.max<-lm(d15N~nfix.max, data=All.Koa.betaneg1) 
+
+# models Median
+B1.mod.Koa.med<-lm(d15N~nfix.med, data=All.Koa.betaneg1)
+
+par(new=T)
+
+#for convex hull
+x <- seq(-40,100, 1) # sequence
+ymax.beta1 <- x*(B1.mod.Koa.max$coefficients[2])+B1.mod.Koa.max$coefficients[1] # x*slope + intercept
+ymed.beta1 <- x*(B1.mod.Koa.med$coefficients[2])+B1.mod.Koa.med$coefficients[1]
+polygon(c(rev(x), x),c(rev(ymax.beta1), ymed.beta1),col=adjustcolor("palegreen3",alpha.f=0.2), border=NA)
+
+# add model lines
+abline(B1.mod.Koa.max, col="black", lty=1)
+
+# plot points and model fits
+par(new=T)
+
+# AK 
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.max, col="coral",
+     xlab=expression(paste("Ndfa-", italic("Acacia koa"), " (%)", sep="")),
+     ylab= expression(paste(italic("Acacia koa "),delta^{15}, N, " (\u2030)")), cex.axis=0.7, 
+     main= "Beta = -1", cex.main=0.7,
+     ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.max, col="dodgerblue", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
+     ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
+legend(x=135, y=3.7, x.intersp =0.15, cex=0.8, legend= c("AK", "RK","means"), bg="transparent", 
+       col=c("coral", "dodgerblue", "black"), 
+       pch=c(20, 20, 21), box.lty=0)
+
+
+## Median
+# AK 
+par(new=T)
+# add model lines
+abline(B1.mod.Koa.med, col="black", lty=2)
+
+par(new=T)
+plot(data=AK.Koa.df.betneg1, d15N~nfix.AK.med, col="coral", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
+     ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg1, d15N~nfix.RK.med, col="dodgerblue", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
+     ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
+legend(x=95, y=-1, x.intersp =0.25, legend= c("max", "median"), bg="transparent",
+       col="black", lty=c(1,2), seg.len=0.4, cex=0.7, box.lty=0, pch=21)
+
+
+# means, FOR max
+AK.max.mean.nfixB1<-mean(AK.Koa.df.betneg1$nfix.AK.max) # mean 58.6
+RK.max.mean.nfixB1<-mean(RK.Koa.df.betneg1$nfix.RK.max) # mean 43.0
+
+# means, FOR median
+AK.med.mean.nfixB1<-mean(AK.Koa.df.betneg1$nfix.AK.med) # mean 36.3
+RK.med.mean.nfixB1<-mean(RK.Koa.df.betneg1$nfix.RK.med) # mean 12.3
+
+# y d15N means
+AK.mean.d15NB1<-mean(AK.Koa.df.betneg1$d15N) # mean 1.28
+RK.mean.d15NB1<-mean(RK.Koa.df.betneg1$d15N) # mean 2.15
+
+######
+# add to plot (max)
+points(x=AK.max.mean.nfixB1, y=AK.mean.d15NB1, pch=1, col="firebrick3", cex=1.2) # AK means
+points(x=RK.max.mean.nfixB1, y=RK.mean.d15NB1, pch=1, col="blue", cex=1.2) # RK means
+
+# add to plot (median)
+points(x=AK.med.mean.nfixB1, y=AK.mean.d15NB1, pch=1, col="firebrick3", cex=1.2) # AK means
+points(x=RK.med.mean.nfixB1, y=RK.mean.d15NB1, pch=1, col="blue", cex=1.2) # RK means
+
+
+
+###################
+###################
+# Beta negative 2
+
+##### Beta -2 plot
+# Beta negative 2
+# AK koa Ndfa
+# Beta negative 1
+# AK koa Ndfa
+All.Koa.betaneg2<- All.Koa %>%
+  mutate(nfix.min = (Rub.min - d15N)/(Rub.min-Beta.neg2)*100) %>%
+  mutate(nfix.max = (Rub.max - d15N)/(Rub.max-Beta.neg2)*100)  %>%
+  mutate(nfix.med = (Rub.med - d15N)/(Rub.med-Beta.neg2)*100)
+
+##### Site specific
+# Beta negative 1
+# AK koa Ndfa
+AK.Koa.df.betneg2<- AK.Koa.df %>%
+  mutate(nfix.AK.min = (Rub.min - d15N)/(Rub.min-Beta.neg2)*100) %>%
+  mutate(nfix.AK.max = (Rub.max - d15N)/(Rub.max-Beta.neg2)*100)  %>%
+  mutate(nfix.AK.med = (Rub.med - d15N)/(Rub.med-Beta.neg2)*100)
+
+# RK koa Ndfa
+RK.Koa.df.betneg2<- RK.Koa.df %>%
+  mutate(nfix.RK.min = (Rub.min - d15N)/(Rub.min-Beta.neg2)*100) %>%
+  mutate(nfix.RK.max = (Rub.max - d15N)/(Rub.max-Beta.neg2)*100)  %>%
+  mutate(nfix.RK.med = (Rub.med - d15N)/(Rub.med-Beta.neg2)*100)
+
+
+## Max
+# build empty plot
+plot(data=All.Koa.betaneg2, d15N~nfix.max, yaxt="n", xaxt="n", ylim=c(-2,3.5), xlim=c(100, -30), 
+     xlab="", ylab="", type="n")
+
+# add shaded areas
+# max and median are highest and lowest respectively
+
+# models Max
+B2.mod.Koa.max<-lm(d15N~nfix.max, data=All.Koa.betaneg2) 
+
+# models Median
+B2.mod.Koa.med<-lm(d15N~nfix.med, data=All.Koa.betaneg2)
+
+par(new=T)
+
+#for convex hull
+x <- seq(-40,100, 1) # sequence
+ymax.beta1 <- x*(B2.mod.Koa.max$coefficients[2])+B2.mod.Koa.max$coefficients[1] # x*slope + intercept
+ymed.beta1 <- x*(B2.mod.Koa.med$coefficients[2])+B2.mod.Koa.med$coefficients[1]
+polygon(c(rev(x), x),c(rev(ymax.beta1), ymed.beta1),col=adjustcolor("palegreen3",alpha.f=0.2), border=NA)
+
+# add model lines
+abline(B2.mod.Koa.max, col="black", lty=1)
+
+# plot points and model fits
+par(new=T)
+
+# AK 
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.max, col="coral", yaxt="n" ,
+     xlab=expression(paste("Ndfa-", italic("Acacia koa"), " (%)", sep="")),
+     ylab= "", cex.axis=0.7, 
+     main= "Beta = -2", cex.main=0.7,
+     ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
+axis(side=2, labels=F)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.max, col="dodgerblue", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
+     ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
+
+
+## Median
+# AK 
+par(new=T)
+# add model lines
+abline(B2.mod.Koa.med, col="black", lty=2)
+
+par(new=T)
+plot(data=AK.Koa.df.betneg2, d15N~nfix.AK.med, col="coral", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
+     ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
+
+#RK
+par(new=T)
+plot(data=RK.Koa.df.betneg2, d15N~nfix.RK.med, col="dodgerblue", xlab="", ylab= "", xaxt="n", yaxt="n", bty="n",
+     ylim=c(-2,3.5), xlim=c(100, -30), cex=0.7, pch=20)
+
+
+# means, FOR max
+AK.max.mean.nfixB2<-mean(AK.Koa.df.betneg2$nfix.AK.max) # mean 58.6
+RK.max.mean.nfixB2<-mean(RK.Koa.df.betneg2$nfix.RK.max) # mean 43.0
+
+# means, FOR median
+AK.med.mean.nfixB2<-mean(AK.Koa.df.betneg2$nfix.AK.med) # mean 36.3
+RK.med.mean.nfixB2<-mean(RK.Koa.df.betneg2$nfix.RK.med) # mean 12.3
+
+# y d15N means
+AK.mean.d15NB2<-mean(AK.Koa.df.betneg2$d15N) # mean 1.28
+RK.mean.d15NB2<-mean(RK.Koa.df.betneg2$d15N) # mean 2.15
+
+######
+# add to plot (max)
+points(x=AK.max.mean.nfixB2, y=AK.mean.d15NB2, pch=1, col="firebrick3", cex=1.2) # AK means
+points(x=RK.max.mean.nfixB2, y=RK.mean.d15NB2, pch=1, col="blue", cex=1.2) # RK means
+
+# add to plot (median)
+points(x=AK.med.mean.nfixB2, y=AK.mean.d15NB2, pch=1, col="firebrick3", cex=1.2) # AK means
+points(x=RK.med.mean.nfixB2, y=RK.mean.d15NB2, pch=1, col="blue", cex=1.2) # RK means
+
+
+dev.copy(pdf, "figures/Ndfa.update.pdf", width=7, height=5, encod="MacRoman")
+dev.off()
+
+```
+
+```{r Ndfa with site different refs, eval=FALSE}
 # Beta negative 1
 # AK koa Ndfa
 AK.Koa.df.betneg1<- AK.Koa.df %>%
