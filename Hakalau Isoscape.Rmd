@@ -263,11 +263,11 @@ Ndfa$d15N.Koa<-Ndfa$mean.d15N.Ndfa
 ####################
 #################### relationship between koa and rubus d15N?
 # Yes, but a bit stronger in the RK site
-mod.AK<-lm(Ndfa[(Ndfa$Plot=="AK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="AK"),]$mean.d15N.Ndfa); anova(mod.AK)
+mod.AK<-lm(Ndfa[(Ndfa$Plot=="AK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="AK"),]$d15N.Koa); anova(mod.AK)
 int.rubAK<-coef(summary(mod.AK))[1] #intercept
 slop.rubAK<-coef(summary(mod.AK))[2] #slope
                                   
-mod.RK<-lm(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="RK"),]$mean.d15N.Ndfa); anova(mod.RK)
+mod.RK<-lm(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="RK"),]$d15N.Koa); anova(mod.RK)
 int.RKoa<-coef(summary(mod.RK))[1] #intercept
 slop.RKoa<-coef(summary(mod.RK))[2] #slope
 
@@ -828,7 +828,7 @@ dev.off()
 
 - if comparing in linear model the % Ndfa, they are only different (higher in AK) if you use a single shared value, in this case the grouped median (i.e, pooled Rubus d15N value across the 2 sites). FYI the mean and median are essentially the same at 2.6 permil. This is the same results if using the offset Beat -1 or -2. If using the site-specifc median and maximum value the mean %Ndfa is the same for both sites. Why? Rubus is likely influenced by the Koa, therefore it is netting a + Ndfa% through Koa/s contribution to surrounding plants. However this d15N signal from Koa is not obvious in the soils of these sites.
 
-```{r Ndfa stats}
+```{r Ndfa stats, eval=FALSE}
 # tests
 ### Beta 1
 Beta1.AK<-AK.Koa.df.betneg1[,c(1:3,5,6,8)]
@@ -864,9 +864,13 @@ anova(lm(allfix.med~Plot, data=Beta2.df)) # med *p=0.114
 #### DBH, Canopy  d15N models  
 - plot against d15N values with model curves
 - scatters with models
-- d15N differ by PLOT (AK vs RK), no other effects
+- d15N differ by PLOT (AK vs RK), no other effects or relationship with DBH or Canopy
 
 ```{r, d15N and DBH Canopy, eval=FALSE}
+# ** No relationship between d15N and DBH or Canopy at plot level**
+# ** Effects at PLOTs on d15N (lower in AK) **
+
+
 ######## plot of d15N and DBH, and d15N and Canopy area
 
 # all samples
@@ -1014,6 +1018,8 @@ d15N.SE<-aggregate(d15N~Plot+Sample, data=Hak.data, std.error)
 TN.SE<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=Hak.data, std.error)
 TC.SE<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=Hak.data, std.error)
 
+d15N.n<-aggregate(d15N~Plot+Sample, data=Hak.data, length)
+
 mean.data<- cbind(d13C.m, d15N.m[3], TN.m[3], TC.m[3], d13C.SE[3], d15N.SE[3], TN.SE[3], TC.SE[3])
 colnames(mean.data)<-c("Plot", "Sample", "d13C.mean", "d15N.mean", "TN.mean", "TC.mean", "d15N.SE", "d13C.SE", "TN.SE", "TC.SE")
 
@@ -1021,45 +1027,51 @@ colnames(mean.data)<-c("Plot", "Sample", "d13C.mean", "d15N.mean", "TN.mean", "T
 levels(mean.data$Sample)[levels(mean.data$Sample)=="RUBARG"] <- "Rubus spp"
 levels(mean.data$Sample)[levels(mean.data$Sample)=="RUBHAW"] <- "Rubus spp"
 
+mean.data$Sample<-factor(mean.data$Sample, levels=c("Soil", "Koa", "Rubus spp"))
+
 ### make mean plots
 pd <- position_dodge(0.7) #offset for error bars
 
 ### d13C
-d13C.plot<-ggplot(data=mean.data, aes(x=Plot, y=d13C.mean, fill=Sample, group=Sample))+
+d13C.plot<-ggplot(data=mean.data, aes(x=Sample, y=d13C.mean, fill=Plot, group=Plot))+
   geom_bar(stat="identity", position = pd, width=0.7)+
   geom_errorbar(aes(ymin=d13C.mean-d13C.SE, ymax=d13C.mean+d13C.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c('skyblue1','mediumseagreen', "goldenrod")) +
-  xlab("Plots") + 
-  annotate(geom="text", x=1.5, y=-30, label=expression(paste(bold("*"))), size=4) +
+  scale_fill_manual(values=c('lightsteelblue1', "palegreen3")) +
+  xlab("Sample Type") + 
+  annotate(geom="text", x=1, y=-27.5, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=2, y=-33, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=3, y=-33, label=expression(paste(bold("*"))), size=4) +
   theme(text = element_text(size=8)) +
   ylab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))) + BW.back2
 
 ### d15N
-d15N.plot<-ggplot(data=mean.data, aes(x=Plot, y=d15N.mean, fill=Sample, group=Sample))+
-  geom_bar(stat="identity", position = pd, width=0.7)+
+d15N.plot<-ggplot(data=mean.data, aes(x=Sample, y=d15N.mean, fill=Plot, group=Plot))+
+  geom_bar(stat="identity", position = pd, width=0.7)+ ylim(c(0,8)) +
   geom_errorbar(aes(ymin=d15N.mean-d15N.SE, ymax=d15N.mean+d15N.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c('skyblue1','mediumseagreen', "goldenrod")) +
-  xlab("Plots") + 
+  scale_fill_manual(values=c('lightsteelblue1', "palegreen3")) +
+  xlab("Sample Type") + 
   theme(text = element_text(size=8)) +
-  annotate(geom="text", x=1.5, y=5, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=2, y=2.8, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=3, y=3.3, label=expression(paste(bold("*"))), size=4) +
   ylab(expression(paste(delta^{15}, N, " (\u2030, air)"))) + BW.back2
 
 ### total Carbon
-TC.plot<-ggplot(data=mean.data, aes(x=Plot, y=TC.mean, fill=Sample, group=Sample))+
-  geom_bar(stat="identity", position = pd, width=0.7)+
+TC.plot<-ggplot(data=mean.data, aes(x=Sample, y=TC.mean, fill=Plot, group=Plot))+
+  geom_bar(stat="identity", position = pd, width=0.7)+ ylim(c(0, 60)) +
   geom_errorbar(aes(ymin=TC.mean-TC.SE, ymax=TC.mean+TC.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c('skyblue1','mediumseagreen', "goldenrod")) +
-  xlab("Plots") + 
+  scale_fill_manual(values=c('lightsteelblue1', "palegreen3")) +
+  xlab("Sample Type") + 
   theme(text = element_text(size=8)) +
-  annotate(geom="text", x=1.5, y=35, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=1, y=25, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=3, y=42, label=expression(paste(bold("*"))), size=4) +
   ylab("Total Carbon (mmol/gdw)") + BW.back2
 
 ### total Nitrogen
-TN.plot<-ggplot(data=mean.data, aes(x=Plot, y=TN.mean, fill=Sample, group=Sample))+
+TN.plot<-ggplot(data=mean.data, aes(x=Sample, y=TN.mean, fill=Plot, group=Plot))+
   geom_bar(stat="identity", position = pd, width=0.7)+
   geom_errorbar(aes(ymin=TN.mean-TN.SE, ymax=TN.mean+TN.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c('skyblue1','mediumseagreen', "goldenrod")) +
-  xlab("Plots") + 
+  scale_fill_manual(values=c('lightsteelblue1', "palegreen3")) +
+  xlab("Sample Type") + 
   theme(text = element_text(size=8)) +
   ylab("Total Nitrogen (mmol/gdw)") + BW.back2
 
@@ -1076,7 +1088,7 @@ bar.plots<-plot_grid(d13C.plot + theme(legend.position = "none"),
           label_size=8, hjust=-1, vjust= 3)
 
 plot_grid(bar.plots, bar.legend, rel_widths = c(8, 1)) # legend  1/8 size as first obj.
-dev.copy(pdf, "figures/Supp.Fig2.mean.data.plots.pdf", width=7, height=3, encod="MacRoman")
+dev.copy(pdf, "figures/Supp.Fig2.mean.data.sample.pdf", width=7, height=3, encod="MacRoman")
 dev.off()
 ```
 
@@ -1100,78 +1112,101 @@ for(i in c(6:12)){
   plot(Hak.data$Sample, R, xlab=colnames(Hak.data)[i], ylab="Residuals")
 }
 
+########## Separate dataframes
+soil<-Hak.data[(Hak.data$Sample=="Soil"),]
+Koa<-Hak.data[(Hak.data$Sample=="Koa"),]
+Rubus<-Hak.data[(Hak.data$Sample=="RUBARG" | Hak.data$Sample=="RUBHAW"),]
+AK.df<-Hak.data[(Hak.data$Plot=="AK"),]; AK.df.sansoil<-AK.df[!(AK.df$Sample=="Soil"),]
+RK.df<-Hak.data[(Hak.data$Plot=="RK"),]; RK.df.sansoil<-RK.df[!(RK.df$Sample=="Soil"),]
+
 ######## ######## 
 ######## Carbon isotopes
+d13C.soil<-lm(d13C~Plot, data=soil); anova(d13C.soil) # soil signif.
+plot(allEffects(d13C.soil))
 
-d13C.lm<-lm(d13C~Plot*Sample, data=Hak.data)
-d13C.av<-(aov(d13C.lm)); summary(d13C.av) # Plot and Sample effects
-plot(allEffects(d13C.lm)) # 2-way interaction
-plot(allEffects(lm(d13C~Plot+Sample, data=Hak.data))) # main effects
+d13C.Koa<-lm(d13C~Plot, data=Koa); anova(d13C.Koa) # Koa signif.
+plot(allEffects(d13C.Koa))
 
-tukey<-TukeyHSD(d13C.av); tukey
-# d13C: Plots differ (Ak vs Rk), Samples differ (as expected)
-# posthocs of plot:sample (without main effects)....
-# show: Rk koa:Ak koa (sign.), Rk soil:Ak soil (sign.), Ak Rub:Rk Rub (signif.), 
-# but koa and Rubus not different from each other in either plots
+d13C.Rubus<-lm(d13C~Plot, data=Rubus); anova(d13C.Rubus) # Rubus signif.
+plot(allEffects(d13C.Rubus))
 
-# main effects-- all plants the same, but differnt from soil
+d13C.AK<-lm(d13C~Sample, data=AK.df.sansoil); anova(d13C.AK) #only koa vs. rubus comparision
+plot(allEffects(d13C.AK))
 
-######## ######## 
+d13C.RK<-lm(d13C~Sample, data=RK.df.sansoil); anova(d13C.RK) #only koa vs. rubus comparision
+plot(allEffects(d13C.RK))
+
 ######## Nitrogen isotopes
+d15N.soil<-lm(d15N~Plot, data=soil); anova(d15N.soil) # soil signif.
+plot(allEffects(d15N.soil))
 
-d15N.lm<-lm(d15N~Plot*Sample, data=Hak.data)
-d15N.av<-(aov(d15N.lm)); summary(d15N.av) # Plot and Sample effects
-plot(allEffects(d15N.lm)) # 2-way interaction
-plot(allEffects(lm(d15N~Plot+Sample, data=Hak.data))) # main effects
+d15N.Koa<-lm(d15N~Plot, data=Koa); anova(d15N.Koa) # Koa signif.
+plot(allEffects(d15N.Koa))
 
-tukey<-TukeyHSD(d15N.av); tukey
-# d15N: Plots differ (Ak vs Rk), Samples differ (as expected)
-# posthocs of plot:samples (without main effects)...
-# show: 
-# Rk koa:Ak koa (NOT sign.),  Rk soil:Ak soil (NOT sign.), Ak Rub:Rk Rub (sign.)
+d15N.Rubus<-lm(d15N~Plot, data=Rubus); anova(d15N.Rubus) # Rubus signif.
+plot(allEffects(d15N.Rubus))
 
-# main effects-- Koa diff invasive Rubus, but not native one
+d15N.AK<-lm(d15N~Sample, data=AK.df.sansoil); anova(d15N.AK) #only koa vs. rubus comparision, signif.
+plot(allEffects(d15N.AK)) 
+
+d15N.RK<-lm(d15N~Sample, data=RK.df.sansoil); anova(d15N.RK) #only koa vs. rubus comparision, signif.
+plot(allEffects(d15N.RK))
+
+
+
 
 ######## ######## 
 ######## Carbon content
+TC.soil<-lm(Total.C..mmol.gdw~Plot, data=soil); anova(TC.soil) # soil signif.
+plot(allEffects(TC.soil))
 
-TC.lm<-lm(Total.C..mmol.gdw~Plot*Sample, data=Hak.data)
-TC.av<-(aov(TC.lm)); summary(TC.av) # Sample and Plot effects
-plot(allEffects(lm(Total.C..mmol.gdw~Plot + Sample, data=Hak.data))) # higher in RK and Koa
-tukey<-TukeyHSD(TC.av); tukey
+TC.Koa<-lm(Total.C..mmol.gdw~Plot, data=Koa); anova(TC.Koa) # Koa signif.
+plot(allEffects(TC.Koa))
+
+TC.Rubus<-lm(Total.C..mmol.gdw~Plot, data=Rubus); anova(TC.Rubus) # Rubus signif.
+plot(allEffects(TC.Rubus))
+
+C.AK<-lm(Total.C..mmol.gdw~Sample, data=AK.df.sansoil); anova(C.AK) #only koa vs. rubus comparision, signif.
+plot(allEffects(C.AK)) 
+
+C.RK<-lm(Total.C..mmol.gdw~Sample, data=RK.df.sansoil); anova(C.RK) #only koa vs. rubus comparision, signif.
+plot(allEffects(C.RK))
 
 ######## ######## 
 ######## Nitrogen content
+TN.soil<-lm(Total.N..mmol.gdw~Plot, data=soil); anova(TN.soil) # soil signif.
+plot(allEffects(TN.soil))
 
-TN.lm<-lm(Total.N..mmol.gdw~Plot*Sample, data=Hak.data)
-TN.av<-(aov(TN.lm)); summary(TN.av) # Sample effects
-plot(allEffects(lm(Total.N..mmol.gdw~Sample, data=Hak.data))) # main effects
-tukey<-TukeyHSD(TN.av); tukey
+TN.Koa<-lm(Total.N..mmol.gdw~Plot, data=Koa); anova(TN.Koa) # Koa signif.
+plot(allEffects(TN.Koa))
 
-######## ######## 
-######## Nitrogen content
+TN.Rubus<-lm(Total.N..mmol.gdw~Plot, data=Rubus); anova(TN.Rubus) # Rubus signif.
+plot(allEffects(TN.Rubus))
 
-CN.lm<-lm(C.N~Plot*Sample, data=Hak.data)
-CN.av<-(aov(CN.lm)); summary(CN.av) # Plot Sample effects
-plot(allEffects(lm(C.N~Plot +Sample, data=Hak.data))) # main effects
-tukey<-TukeyHSD(CN.av); tukey
+N.AK<-lm(Total.N..mmol.gdw~Sample, data=AK.df.sansoil); anova(N.AK) #only koa vs. rubus comparision, signif.
+plot(allEffects(N.AK)) 
+
+N.RK<-lm(Total.N..mmol.gdw~Sample, data=RK.df.sansoil); anova(N.RK) #only koa vs. rubus comparision, signif.
+plot(allEffects(N.RK))
+
+
 
 ```
 **d13C model**
 ```{r, d13C}
-summary(d13C.av)
+
 ```
 **d15N model**
 ```{r, d15N}
-summary(d15N.av)
+
 ```
 **Carbon content model**
 ```{r, C content}
-summary(TC.av)
+
 ```
 **Nitrogen content model**
 ```{r, N content}
-summary(TN.av)
+
 ```
   
   
@@ -1218,6 +1253,102 @@ dev.off()
 coordinates(krig.AK)<- ~x.meter + y.meter
 col.scheme.N <- colorRampPalette(c('red', 'darkseagreen2', 'gray5'))(5)
 
+# Create a grid of "Pixels" using x as columns and y as rows
+# And the rows and columns of pixels:
+Columns=seq(from=0, to=35, by=0.05)
+Rows=seq(from=0, to=20, by=0.05)
+Grid.AK <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.AK) <- ~ x+y
+gridded(Grid.AK) <- TRUE # Plot the grid and points
+
+# autokrige
+d15N.AK.auto <- autoKrige(d15N ~ 1, krig.AK, Grid.AK) # ordinary kriging
+plot(d15N.AK.auto, sp.layout = list(pts = list("sp.points", krig.AK)))
+d15N.AK.auto$krige_output
+
+# make to dataframes for lm, combine
+AK.pred <- d15N.AK.auto[1] %>% as.data.frame() # model predictions
+AK.df <- krig.AK %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.AK.df<- left_join(AK.df, AK.pred, by = c("x.meter"="krige_output.x"))
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.AK.df)
+summary(mod) #R squared = 0.22
+
+# inspect model
+plot(pred.AK.df$krige_output.var1.pred ~ pred.AK.df$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2)
+abline(0,1, lty=2)
+abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "Greens")
+
+# map in automap
+automapPlot(d15N.AK.auto$krige_output, "var1.pred", sp.layout = list("sp.points", krig.AK), col.regions=my.palette)
+
+# map in ssplot
+# note that the prediction "var1.pred" component of the krig is a SpatialPixelsDataFrame. Need to call the krig, then the component df("krige_output"), then the output column ("var1.pred") to plot in spplot
+
+# variance
+spplot(d15N.AK.auto$krige_output,"var1.pred")
+
+#predicted krige
+plotd15N.krig.AK<-spplot(d15N.AK.auto$krige_output["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
+plotd15N.krig.AK
+
+
+###########################
+# RK Site Krig
+###########################
+## Krig AK site 
+krig.RK<- scape.data %>% filter(Plot=="RK")
+coordinates(krig.RK)<- ~x.meter + y.meter
+
+Columns=seq(from=0, to=20, by=0.005)
+Rows=seq(from=0, to=35, by=0.005)
+Grid.RK <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.RK) <- ~ x+y
+gridded(Grid.RK) <- TRUE # Plot the grid and points
+
+# autokrige
+d15N.RK.auto <- autoKrige(d15N ~ 1, krig.RK, Grid.RK) # ordinary kriging
+plot(d15N.RK.auto, sp.layout = list(pts = list("sp.points", krig.RK)))
+d15N.RK.auto$krige_output
+
+# make to dataframes for lm, combine
+RK.pred <- d15N.RK.auto[1] %>% as.data.frame() # model predictions
+RK.df <- krig.RK %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.RK.df<- left_join(RK.df, RK.pred, by = c("x.meter"="krige_output.x"))
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.RK.df)
+summary(mod) #R squared = 0.18
+
+# inspect model
+plot(pred.RK.df$krige_output.var1.pred ~ pred.RK.df$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2)
+abline(0,1, lty=2)
+abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "Greens")
+
+# map in automap
+automapPlot(d15N.RK.auto$krige_output, "var1.pred", sp.layout = list("sp.points", krig.RK), col.regions=my.palette)
+
+# variance
+spplot(d15N.RK.auto$krige_output,"var1.pred")
+
+#predicted krige
+plotd15N.krig.RK<-spplot(d15N.RK.auto$krige_output["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
+plotd15N.krig.RK
+
+
+
+
+
+
 Grid.AK <- spsample(krig.AK, type='regular', n=1e5)
 gridded(Grid.AK) <- TRUE
 
@@ -1236,7 +1367,7 @@ gridded(GridRK) <- TRUE
 
 ## d15N plot
 d15N.krig.RK <- krige(d15N ~ 1, krig.RK, GridRK)
-plot(variogram(d15N ~ 1, krig.AK))
+plot(variogram(d15N ~ 1, krig.RK))
 
 plotd15N.krig.RK<-spplot(d15N.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
        main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
@@ -1256,7 +1387,7 @@ dev.off()
 Now make rasters and kirgs for the types of data for analysis.
 
 #### AK plot rasters  
-  
+
 Subset data and only examine **KOA** in the plots. 
 ```{r}
 ###### AK site
@@ -1305,10 +1436,10 @@ TheGStat <- gstat(TheGStat, id="Sine", model=FittedModel )
 
 # create sequences that represent the center of the columns of pixels
 # change "by" to change the resolution of the raster
-Columns=seq(from=0, to=35, by=0.1)
+Columns=seq(from=0, to=35, by=0.05)
 
 # And the rows of pixels:
-Rows=seq(from=0, to=20, by=0.1)
+Rows=seq(from=0, to=20, by=0.05)
 
 # Create a grid of "Pixels" using x as columns and y as rows
 Grid.KOA.AK <- expand.grid(x=Columns,y=Rows)
@@ -1318,9 +1449,6 @@ coordinates(Grid.KOA.AK) <- ~ x+y
 
 gridded(Grid.KOA.AK) <- TRUE # Plot the grid and points
 
-gridExtra::grid.arrange(plotd15N.krig.RK, plotd15N.krig.AK, ncol=2, nrow=1)
-dev.copy(pdf, "figures/RKAK.d15N.krig2.pdf", width=7, height=4, encod="MacRoman")
-dev.off()
 
 par(mfrow=c(1,1), mar=c(4,4,2,2))
 plot(krig.AK$d15N, col=krig.AK$Sample, cex=0.8)
@@ -1347,18 +1475,71 @@ points(KOA.AK, pch=4, cex=0.5)
 # Set the title
 title('Prediction')
 
-##for the second plot
-d15N.KOA.AK <- krige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
-plot(d15N.KOA.AK)
+#####################for the second plot
+### ordinary kriggin, with 'autoKrige'
 
-d15N.KOA.AK <- autoKrige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
-plot(d15N.KOA.AK)
-plot(variogram(d15N ~ 1, KOA.AK)) # variogram
+## d15N koa plot
+krig.AK<- scape.data %>% filter(Plot=="AK") # just AK
+krig.AK$Sample<-factor(krig.AK$Sample, levels=c("Koa", "RUBHAW", "Soil"))
 
-d15N.KOA.AK2 <- krige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
-plotd15N.koa.krig.AK2<-spplot(d15N.KOA.AK2["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
+KOA.AK<-  krig.AK %>% filter(Sample=="Koa") #just Koa
+coordinates(KOA.AK)<- ~x.meter + y.meter # coordinate system
+
+# point grid for interpolation is 'Grid.KOA.AK' (below)
+Columns=seq(from=0, to=35, by=0.05)
+Rows=seq(from=0, to=20, by=0.05)
+Grid.KOA.AK <- expand.grid(x=Columns,y=Rows) # Create a grid of "Pixels" using x as columns and y as rows
+coordinates(Grid.KOA.AK) <- ~ x+y  # Convert Thegrid to a SpatialPixel class
+gridded(Grid.KOA.AK) <- TRUE # Plot the grid and points
+
+# autokrige
+d15N.KOA.AK.auto <- autoKrige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # ordinary kriging
+plot(d15N.KOA.AK.auto, sp.layout = list(pts = list("sp.points", KOA.AK)))
+d15N.KOA.AK.auto$krige_output
+
+# make to dataframes for lm, combine
+AK.Koa.pred <- d15N.KOA.AK.auto[1] %>% as.data.frame() # model predictions
+AK.Koa.df <- KOA.AK %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.KOA.AK<- left_join(AK.Koa.df, AK.Koa.pred, by = c("x.meter"="krige_output.x"))
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.KOA.AK)
+summary(mod) #R squared = 0.174
+
+# inspect model
+plot(pred.KOA.AK$krige_output.var1.pred ~ pred.KOA.AK$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2)
+abline(0,1, lty=2)
+abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "Greens")
+
+# map in automap
+automapPlot(d15N.KOA.AK.auto$krige_output, "var1.pred", sp.layout = list("sp.points", KOA.AK), col.regions=my.palette)
+
+# map in ssplot
+# note that the prediction "var1.pred" component of the krig is a SpatialPixelsDataFrame. Need to call the krig, then the component df("krige_output"), then the output column ("var1.pred") to plot in spplot
+
+# variance
+spplot(d15N.KOA.AK.auto$krige_output,"var1.pred")
+
+#predicted krige
+plotd15N.koa.krig.AK<-spplot(d15N.KOA.AK.auto$krige_output["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
        main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
-plotd15N.koa.krig.AK2
+plotd15N.koa.krig.AK
+
+
+
+### inverse distance weighted interpolationm, with 'krige'
+d15N.KOA.AK <- krige(d15N ~ 1, KOA.AK, Grid.KOA.AK) # inverse distance weighted interpolation
+plot(variogram(d15N ~ 1, KOA.AK)) # variogram
+plot(d15N.KOA.AK)
+
+plot(autofitVariogram(d15N ~ 1, KOA.AK))
+
+plotd15N.koa.krig.AK<-spplot(d15N.KOA.AK[1], col.regions=colorRampPalette(col.scheme.N), 
+       main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
+plotd15N.koa.krig.AK
 
 ```
 
