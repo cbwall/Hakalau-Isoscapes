@@ -23,7 +23,7 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
 
 # load packages
-pacman::p_load("RgoogleMaps", "SDMTools", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats")
+pacman::p_load("RgoogleMaps", "SDMTools", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats", "RColorBrewer")
 
 ```
 
@@ -1002,7 +1002,7 @@ dev.off()
 
 ```
  
-*Supplemental Figure 2*   
+*Figure 2*   
 data means and SE for plots  
 - bar plots of d13C, d15N, TC and TN for all 4 samples types. 
 
@@ -1223,6 +1223,7 @@ data.merge<-as.data.frame(join_all(list(Hak.data, krig), by = "Position.point", 
 
 data.merge<-data.merge[c(-167:-194),] # drop NAs where no samples taken
 scape.data<-data.merge
+
 write.csv(scape.data, "output/scape.data.csv")
 
 #################
@@ -1230,6 +1231,10 @@ write.csv(scape.data, "output/scape.data.csv")
 
 # just AK site
 krig.AK<- scape.data %>% filter(Plot=="AK")
+
+# modify one point slightly due to overlap of coordinate system
+krig.AK$y.matrix[24]=2.4; krig.AK$y.meter[24]=2.4
+krig.AK$x.matrix[24]=5.4; krig.AK$x.meter[24]=5.4
 
 AK.map<-krig.AK %>% as.data.frame %>% 
   ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d15N, color=Sample), alpha=3/4) + 
@@ -1249,17 +1254,26 @@ dev.off()
 #####################
 #####################
 
-## Krig AK site 
+## Krig AK sites
 coordinates(krig.AK)<- ~x.meter + y.meter
-col.scheme.N <- colorRampPalette(c('red', 'darkseagreen2', 'gray5'))(5)
 
 # Create a grid of "Pixels" using x as columns and y as rows
 # And the rows and columns of pixels:
-Columns=seq(from=0, to=35, by=0.05)
-Rows=seq(from=0, to=20, by=0.05)
+Columns=seq(from=-1, to=36, by=0.05)
+Rows=seq(from=-1, to=21, by=0.05)
 Grid.AK <- expand.grid(x=Columns,y=Rows)
 coordinates(Grid.AK) <- ~ x+y
 gridded(Grid.AK) <- TRUE # Plot the grid and points
+
+## expand binding box 
+krig.AK@bbox # current data binding box
+x<-c(-1, 36)
+y<-c(-1, 21)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+krig.AK@bbox<-bbox(S) # expanded binding box for data
+Grid.AK@bbox<-bbox(S) # expand for plot corner
 
 # autokrige
 d15N.AK.auto <- autoKrige(d15N ~ 1, krig.AK, Grid.AK) # ordinary kriging
@@ -1271,9 +1285,12 @@ AK.pred <- d15N.AK.auto[1] %>% as.data.frame() # model predictions
 AK.df <- krig.AK %>% as.data.frame() # dataframe
 
 # make dataframe with data and predictions (krig) to assess fit
-pred.AK.df<- left_join(AK.df, AK.pred, by = c("x.meter"="krige_output.x"))
+pred.AK.df<- left_join(AK.df, AK.pred, by = c("x.meter"="krige_output.x")) # longest axis is x
 mod <- lm(krige_output.var1.pred ~ d15N, data=pred.AK.df)
-summary(mod) #R squared = 0.22
+summary(mod) #R squared = 0.21
+
+mean(pred.AK.df$krige_output.var1.pred, na.rm=T) # mean of predictions 4.4 d15N
+mean(pred.AK.df$krige_output.var1.stdev, na.rm=T) # 2.1
 
 # inspect model
 plot(pred.AK.df$krige_output.var1.pred ~ pred.AK.df$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2)
@@ -1281,20 +1298,26 @@ abline(0,1, lty=2)
 abline(mod, col = "blue")
 
 # Adding the sp.layout parameter shows the locations of the measurements
-my.palette <- brewer.pal(n = 9, name = "Greens")
+my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 # map in automap
-automapPlot(d15N.AK.auto$krige_output, "var1.pred", sp.layout = list("sp.points", krig.AK), col.regions=my.palette)
+automapPlot(d15N.AK.auto$krige_output, "var1.pred", sp.layout = list("sp.points", krig.AK, pch=16, col="gray20", cex=0.5), col.regions=my.palette)
 
 # map in ssplot
 # note that the prediction "var1.pred" component of the krig is a SpatialPixelsDataFrame. Need to call the krig, then the component df("krige_output"), then the output column ("var1.pred") to plot in spplot
 
 # variance
-spplot(d15N.AK.auto$krige_output,"var1.pred")
+spplot(d15N.AK.auto$krige_output,"var1.stdev")
 
 #predicted krige
-plotd15N.krig.AK<-spplot(d15N.AK.auto$krige_output["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
-       main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
+my.palette2 <- brewer.pal(n = 6, name = "BuGn")
+my.palette3 <- colorRampPalette(c("green4", "darkseagreen1", "azure1"))(4)
+col.scheme.N <- colorRampPalette(my.palette3)
+
+
+plotd15N.krig.AK<-spplot(d15N.AK.auto$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", krig.AK, pch=16, col="black", cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{15}, N, " - AK (Restored Forest)")), cex=0.8))
 plotd15N.krig.AK
 
 
@@ -1305,11 +1328,20 @@ plotd15N.krig.AK
 krig.RK<- scape.data %>% filter(Plot=="RK")
 coordinates(krig.RK)<- ~x.meter + y.meter
 
-Columns=seq(from=0, to=20, by=0.005)
-Rows=seq(from=0, to=35, by=0.005)
+Columns=seq(from=-1, to=21, by=0.05)
+Rows=seq(from=-1, to=36, by=0.05)
 Grid.RK <- expand.grid(x=Columns,y=Rows)
 coordinates(Grid.RK) <- ~ x+y
 gridded(Grid.RK) <- TRUE # Plot the grid and points
+
+## expand binding box 
+krig.RK@bbox # current data binding box
+x<-c(-1, 21)
+y<-c(-1, 36)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+Grid.RK@bbox<-bbox(S) # expand for plot corner
 
 # autokrige
 d15N.RK.auto <- autoKrige(d15N ~ 1, krig.RK, Grid.RK) # ordinary kriging
@@ -1321,56 +1353,30 @@ RK.pred <- d15N.RK.auto[1] %>% as.data.frame() # model predictions
 RK.df <- krig.RK %>% as.data.frame() # dataframe
 
 # make dataframe with data and predictions (krig) to assess fit
+# longest axis here is y
 pred.RK.df<- left_join(RK.df, RK.pred, by = c("x.meter"="krige_output.x"))
 mod <- lm(krige_output.var1.pred ~ d15N, data=pred.RK.df)
 summary(mod) #R squared = 0.18
+mean(pred.RK.df$krige_output.var1.pred, na.rm=T) # mean of predictions 5.0 d15N
+mean(pred.RK.df$krige_output.var1.stdev, na.rm=T) # 1.8
 
 # inspect model
 plot(pred.RK.df$krige_output.var1.pred ~ pred.RK.df$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2)
 abline(0,1, lty=2)
 abline(mod, col = "blue")
 
-# Adding the sp.layout parameter shows the locations of the measurements
-my.palette <- brewer.pal(n = 9, name = "Greens")
-
 # map in automap
 automapPlot(d15N.RK.auto$krige_output, "var1.pred", sp.layout = list("sp.points", krig.RK), col.regions=my.palette)
 
 # variance
-spplot(d15N.RK.auto$krige_output,"var1.pred")
+spplot(d15N.RK.auto$krige_output,"var1.stdev")
 
 #predicted krige
-plotd15N.krig.RK<-spplot(d15N.RK.auto$krige_output["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
-       main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
+plotd15N.krig.RK<-spplot(d15N.RK.auto$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", krig.RK, pch=16, col="black", cex=0.5, alpha=0.5), 
+       main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.7), colorkey=FALSE)
 plotd15N.krig.RK
 
-
-
-
-
-
-Grid.AK <- spsample(krig.AK, type='regular', n=1e5)
-gridded(Grid.AK) <- TRUE
-
-## d15N full plot
-d15N.krig.AK <- krige(d15N ~ 1, krig.AK, Grid.AK) # ordinary kriging
-plot(variogram(d15N ~ 1, krig.AK)) # variogram
-
-plotd15N.krig.AK<-spplot(d15N.krig.AK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
-       main=expression(paste(delta^{15}, N, "--AK (Afforested Koa Plot)")))
-
-#####################
-## Krig RK site
-coordinates(krig.RK)<- ~x.meter + y.meter
-GridRK <- spsample(krig.RK, type='regular', n=1e5)
-gridded(GridRK) <- TRUE
-
-## d15N plot
-d15N.krig.RK <- krige(d15N ~ 1, krig.RK, GridRK)
-plot(variogram(d15N ~ 1, krig.RK))
-
-plotd15N.krig.RK<-spplot(d15N.krig.RK["var1.pred"], col.regions=colorRampPalette(col.scheme.N), 
-       main=expression(paste(delta^{15}, N, "--RK (Remnant Koa Plot)")))
 
 #####################
 grid.draw.ggmatrix <- function(x, recording = TRUE) {
@@ -1378,9 +1384,51 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined Ak-Rk krig d15N plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd15N.krig.RK, plotd15N.krig.AK, ncol=2, nrow=1)
-dev.copy(pdf, "figures/RKAK.d15N.krig2.pdf", width=7, height=4, encod="MacRoman")
+gridExtra::grid.arrange(plotd15N.krig.RK, plotd15N.krig.AK, ncol=2, nrow=1, widths = c(1,1.2))
+dev.copy(png, "figures/RKAK.d15N.krig2.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
+
+
+
+
+
+###################
+# make density plots using predictions
+# combine the predictions for each plot
+AK.df.out<-as.data.frame(AK.pred$krige_output.var1.pred); AK.df.out$Plot<-"AK"
+RK.df.out<-as.data.frame(RK.pred$krige_output.var1.pred); RK.df.out$Plot<-"RK"; 
+colnames(AK.df.out)<-c("d15N.pred", "Plot")
+colnames(RK.df.out)<-c("d15N.pred", "Plot")
+
+# new dataframe
+pred.dat<-rbind(AK.df.out, RK.df.out)
+pred.dat$Plot<-as.factor(pred.dat$Plot)
+pred.dat %>% 
+  group_by(Plot) %>%
+  summarise(no_rows = length(Plot))
+
+#man whitney for significance (not normal data)
+mwu(pred.dat, d15N.pred, Plot) # signif difference in predictions (p<0.001)
+
+# Density plot
+
+hist(pred.dat$d15N.pred[(pred.dat$Plot=="AK")], ylim=c(0,150000), xlab="d15N-predict")
+hist(pred.dat$d15N.pred[(pred.dat$Plot=="RK")], ylim=c(0,150000), xlab="d15N-predict")
+# plot.means
+predict.mean <- ddply(pred.dat, "Plot", summarise, grp.mean=mean(d15N.pred, na.rm=TRUE))
+
+density.predict<-ggplot(pred.dat, aes(x=d15N.pred)) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+
+  xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+  scale_color_manual(values=c("#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  geom_vline(data=predict.mean, aes(xintercept=grp.mean, color=Plot),
+             linetype="dashed", lwd=0.2) + BW.back2
+
+print(density.predict)
+dev.copy(pdf, "figures/mod.pred.pdf", width = 4, height = 4)
+dev.off()
+
 
 ```
   
