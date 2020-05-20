@@ -1356,7 +1356,7 @@ RK.df <- krig.RK %>% as.data.frame() # dataframe
 # longest axis here is y
 pred.RK.df<- left_join(RK.df, RK.pred, by = c("x.meter"="krige_output.x"))
 mod <- lm(krige_output.var1.pred ~ d15N, data=pred.RK.df)
-summary(mod) #R squared = 0.18
+summary(mod) #R squared = 0.17
 mean(pred.RK.df$krige_output.var1.pred, na.rm=T) # mean of predictions 5.0 d15N
 mean(pred.RK.df$krige_output.var1.stdev, na.rm=T) # 1.8
 
