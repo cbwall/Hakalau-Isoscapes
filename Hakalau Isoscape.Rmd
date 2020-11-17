@@ -397,6 +397,9 @@ Can.m<-aggregate(Canopy.area~Plot, data=Hak.data, mean)
 DBH.SE<-aggregate(DBH.Total~Plot, data=Hak.data, std.error)
 Can.SE<-aggregate(Canopy.area~Plot, data=Hak.data, std.error)
 
+DBH.n<-aggregate(DBH.Total~Plot, data=Hak.data, length)
+Can.n<-aggregate(Canopy.area~Plot, data=Hak.data, length)
+
 mean.eco<-cbind(DBH.m, Can.m[2], DBH.SE[2], Can.SE[2]); colnames(mean.eco)<-c("Plot", "DBH", "Can", "D.SE", "C.SE")
 
 pd <- position_dodge(0.7) #offset for error bars
@@ -562,6 +565,7 @@ d15N.SE<-aggregate(d15N~Plot+Sample, data=Hak.data, std.error)
 TN.SE<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=Hak.data, std.error)
 TC.SE<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=Hak.data, std.error)
 
+d13C.n<-aggregate(d13C~Plot+Sample, data=Hak.data, length)
 d15N.n<-aggregate(d15N~Plot+Sample, data=Hak.data, length)
 
 mean.data<- cbind(d13C.m, d15N.m[3], TN.m[3], TC.m[3], d13C.SE[3], d15N.SE[3], TN.SE[3], TC.SE[3])
