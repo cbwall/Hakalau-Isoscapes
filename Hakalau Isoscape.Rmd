@@ -395,6 +395,7 @@ mwu(Hak.data, Canopy.area, Plot) # not
 #### plots
 DBH.m<-aggregate(DBH.Total~Plot, data=Hak.data, mean)
 Can.m<-aggregate(Canopy.area~Plot, data=Hak.data, mean)
+canopy.mean<-aggregate(Canopy.area~Plot, data=Hak.data, sum) 
 
 DBH.SE<-aggregate(DBH.Total~Plot, data=Hak.data, std.error)
 Can.SE<-aggregate(Canopy.area~Plot, data=Hak.data, std.error)
