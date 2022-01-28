@@ -174,7 +174,7 @@ dev.off()
 - data mutating  
 - test scatters of all samples by habitat  
 ```{r, Hak data, fig.show=FALSE}
-Hak.df<-read.csv("data/Hakalau.isotopes.csv")
+Hak.df<-read.csv("data/Hakalau.rawdata.csv")
 
 ########## DBH 
 DBH.df<- Hak.df %>%
@@ -222,6 +222,8 @@ Hak.df$Canopy.area<-Can.df$Canopy.area
 # Hak.data is the full dataframe
 Hak.data<- Hak.df %>%
   select(c(Plot, Position.point, Sample, DBH.Total, Canopy.area, d15N, d13C, N..percent, Total.N..mmol.gdw, C..percent, Total.C..mmol.gdw, C.N))
+
+write.csv(Hak.data, "data/Hakalau.fulldata.csv")
 
 ########################
 ########################
