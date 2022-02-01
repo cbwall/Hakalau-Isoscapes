@@ -517,13 +517,13 @@ plot(allEffects(d13C.RK))
 **Nitrogen content model**
 ```{r, N concent}
 ####### Nitrogen content
-TN.soil<-lm(Total.N..mmol.gdw~Plot, data=soil); anova(TN.soil) # soil signif.
+TN.soil<-lm(Total.N..mmol.gdw~Plot, data=soil); anova(TN.soil) # soil not signif by plot
 plot(allEffects(TN.soil))
 
-TN.Koa<-lm(Total.N..mmol.gdw~Plot, data=Koa); anova(TN.Koa) # Koa signif.
+TN.Koa<-lm(Total.N..mmol.gdw~Plot, data=Koa); anova(TN.Koa) # Koa not signif by plot
 plot(allEffects(TN.Koa))
 
-TN.Rubus<-lm(Total.N..mmol.gdw~Plot, data=Rubus); anova(TN.Rubus) # Rubus signif.
+TN.Rubus<-lm(Total.N..mmol.gdw~Plot, data=Rubus); anova(TN.Rubus) # Rubus trend by plot
 plot(allEffects(TN.Rubus))
 
 N.AK<-lm(Total.N..mmol.gdw~Sample, data=AK.df.sansoil); anova(N.AK) #only koa vs. rubus comparision, signif.
@@ -836,7 +836,7 @@ RK.df.N <- krig.RK %>% as.data.frame() # dataframe
 pred.RK.df.N<- left_join(RK.df.N, RK.pred.N, by = c("x.meter"="krige_output.x"))
 mod <- lm(krige_output.var1.pred ~ d15N, data=pred.RK.df.N)
 summary(mod) #R squared = 0.21
-mean(pred.RK.df.N$krige_output.var1.pred, na.rm=T) # mean of predictions 5.0 d15N
+mean(pred.RK.df.N$krige_output.var1.pred, na.rm=T) # mean of predictions 4.9 d15N
 mean(pred.RK.df.N$krige_output.var1.stdev, na.rm=T) # 1.9
 
 # inspect model
