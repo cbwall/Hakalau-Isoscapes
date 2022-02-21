@@ -1604,15 +1604,8 @@ density.predict.Nplants<-ggplot(pred.plants.N, aes(x=d15N.pred)) +
   geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
              linetype="dashed", lwd=0.2) + BW.back2
 
-
-
-# get the legend, # create some space to the left of the legend
-density.legend <- get_legend(
-  density.predict.Nplants + theme(legend.box.margin = margin(0, 0, 0, 12)) + 
-    theme(legend.key.size = unit(0.3, "cm")))
-
 gridExtra::grid.arrange(density.predict.Nplants)
-dev.copy(pdf, "figures/Fig Sx.mod.pred.pdf", width = 5, height = 2.5)
+dev.copy(pdf, "figures/Fig Sx.plant.mod.pred.pdf", width = 5, height = 2.5)
 dev.off()
 
 ```
