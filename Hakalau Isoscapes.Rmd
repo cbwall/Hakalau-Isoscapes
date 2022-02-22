@@ -1,0 +1,1587 @@
+---
+title: "Hakalau Isoscapes"
+author: "CB Wall"
+date: "2/22/2022"
+output:
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r global options, warning=FALSE, message=FALSE}
+if (!require('knitr')) install.packages('knitr'); library('knitr')
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
+
+# Load in packages
+if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
+
+# load packages
+pacman::p_load("RgoogleMaps", "SDMTools", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats", "RColorBrewer")
+
+```
+
+## Background  
+**Hakalau National Forest Wildlife Refuge Isoscapes**  
+Data collected 20-21 August 2019 in Hakalau Forest, Hawai'i Island. plants and plant samples collected from  afforested/restored plots after a century of deforestation from cattle grazing (*KP sites*) and remnant mixed koa-ohia forests (*RK sites*). Target engineers of forest habitats are *Acacia koa* (Hawaiian name: *Koa*), an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria. Understory species include *Rubus argutus* -- an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiiensis* (common name: 'Ākala); both are members of the Roseaceae family. Noteably, *R. argutus* was found more in the remnant plot (i.e., RK) and the indigenous *R. hawaiiensis* was common in the restored plot (i.e, KP). 
+
+Plants samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a δ^13^C and δ^15^N stable isotope landscape, hereafter 'isoscape'. Koa and *Rubus* spp. were collected within each 4 x 5m subplot.  
+
+*Plot densities were...*  
+KP: Koa (18 trees) Rubus (14 plants) per 20 x 35m plot= *0.026 Koa m^-2^, 0.020 Rubus m^-2^*
+RK: Koa (10 trees) Rubus (28 plants) per 20 x 35m plot= *0.014 Koa m^-2^, 0.040 Rubus m^-2^*
+
+### Site Maps
+```{r, site maps, fig.cap="Figure 1. Site map of (a) the Hawaiian Island archipelago, (b) sampling plot in Hakalau Forest Refuge, and (c) plot layouts, highlighting *Acacia koa* density.", fig.align='center', results='hide'}
+
+# load data
+HKP.gps<-read.csv("data/Hakalau.gps.csv")
+API<-read.csv("data/API_key.csv")
+API.key<-API[1,1]
+
+#quick map
+# ggplot(HKP.gps, aes(x = longitude, y = latitude)) + coord_quickmap() + geom_point()
+
+######## using ggmap
+register_google(key=API.key)
+
+########
+#Hawaiian islands Map
+########
+hi_map<-get_map(location=c(-157,20.5),zoom=7,maptype="satellite",color="color")
+hi_map_for_man <- ggmap(hi_map) +
+  geom_point(aes(x = -155.320, y = 19.83), pch=23,colour="black",fill="red", size = 2, stroke=0.5) +
+  xlab("") + ylab("Latitude") +
+  scale_y_continuous(limits=c(18.8, 22.2))+
+  scale_x_continuous(limits=c(-160.2, -154)) +
+  theme(axis.text=element_text(colour="black",size=5),
+        axis.title=element_text(colour="black",size=8),
+        plot.margin = unit(c(0, 0.5, 0, 0.7), "cm")) +
+  ggsn::scalebar(x.min=-160.2, x.max=-154, y.min=18.8, y.max=22.2, dist=50, dist_unit="km", transform=TRUE,
+                 st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84",st.color="white", border.size=0.5)
+
+
+##########
+# site map plot showing distance from plots
+##########
+HKP.rev=c(-155.317, 19.82158002)
+
+map2<-get_map(HKP.rev, 
+                      zoom=16, 
+                      scale = 2, 
+                      maptype= "satellite",
+                      source="google", extent= "device", legend="topright")
+
+###
+###### site single point only
+site.only<-HKP.gps[c(1,5),]
+
+Hakalau.site<-
+  ggmap(map2)+
+  geom_point(aes(x=longitude, y=latitude), data=site.only, alpha=0.5, color="white", size=4)+
+  labs(x="", y="") +
+  scale_y_continuous(limits=c(19.81785, 19.8242))+
+  scale_x_continuous(limits=c(-155.3223, -155.311)) +
+  theme(text = element_text(size=6),
+       plot.margin = unit(c(0.2, 0.5, 0.2, 0.2), "cm")) +
+  annotate("text", x=-155.3187, y=19.8225, label= "KP", size=3, col="white") +
+  annotate("text", x=-155.31478, y=19.8224, label= "RK", size=3, col="white") +
+ggsn::scalebar(x.min=-155.314, x.max=-155.311, y.min=19.818, y.max=19.824, dist=100, 
+               dist_unit="m", transform=TRUE,
+              st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84",st.color="white", border.size=0.5)
+
+
+##########
+# Site plots: KP or RK only
+##########
+KP<- HKP.gps[(HKP.gps$Site=="KP"),]
+RK<- HKP.gps[(HKP.gps$Site=="RK"),]
+
+####### KP map
+KP.gps<-c(-155.3189, lat=19.8219)
+mapKP<-get_map(KP.gps,
+              zoom=19, 
+              scale = 2, 
+              maptype= "satellite",
+              source="google", extent= "device", legend="topright")
+
+KP.map<-ggmap(mapKP, group=type)+
+  geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=KP, alpha=0.5, size=3)+
+  scale_y_continuous(limits=c(19.82165, 19.82225))+
+  scale_x_continuous(limits=c(-155.3194, -155.3183)) +
+  theme(legend.position="top",
+    legend.text = element_text(color = "white"),
+    legend.title = element_text(color = "white"),
+    legend.key = element_rect(fill = "white"),
+    plot.margin = unit(c(0, 0.5, 0, 0), "cm"),
+    text = element_text(size=8)) +
+  guides(colour= guide_legend(override.aes = list(color = "white"))) +
+  scale_color_manual(values=c('red','mediumseagreen'))+
+  labs(x="Longitude", y="Latitude") +
+  annotate("text", x=-155.31923, y=19.82225, label= "Restored Forest (KP)", size=3, col="white")+
+  ggsn::scalebar(x.min=-155.3183, x.max=-155.3187, y.min=19.82165, y.max=19.82225, dist=10, 
+               dist_unit="m", transform=TRUE,
+              st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84", st.color="white", border.size=0.5)
+
+
+####### RK map
+RK.edit<-RK[-12,] # remove "proximate" Koa
+RK.edit[9,3]<-"koa" # rename to be "koa"
+
+RK.gps<-c(-155.315, 19.8216)
+mapRK<-get_map(RK.gps,
+               zoom=19, 
+               scale = 2, 
+               maptype= "satellite",
+               source="google", extent= "device", legend="topright")
+
+RK.map<-ggmap(mapRK, group=type)+
+  geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=RK.edit, alpha=0.5, size=3)+
+  scale_color_manual(values=c('red','mediumseagreen', "dodgerblue"))+
+  scale_shape_manual(values=c(16, 17, 3)) +
+  scale_y_continuous(limits=c(19.82120, 19.82195))+
+  scale_x_continuous(limits=c(-155.31575, -155.3144)) +
+  theme(legend.position="top",
+        legend.title=element_blank(), 
+        legend.key = element_rect(fill = "white"),
+        plot.margin = unit(c(0, 0.5, 0, 0), "cm"), 
+        text = element_text(size=8)) +
+  labs(x="Longitude", y="") +
+  annotate("text", x=-155.31555, y=19.821925, label= "Remnant Forest (RK)", size=3, col="white")+
+  ggsn::scalebar(x.min=-155.3148, x.max=-155.3144, y.min=19.8212, y.max=19.8219, dist=10, 
+               dist_unit="m", transform=TRUE,
+              st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84", st.color="white", border.size=0.5)
+
+
+site.plots<-plot_grid(hi_map_for_man, Hakalau.site, KP.map, RK.map, 
+          labels=c('a', 'b', 'c', 'd'), label_size=8, hjust=-1, vjust= 2, ncol=2, nrow=2)
+site.plots
+
+### export it
+pdf(file= "figures/Fig1.sitemaps.pdf", height=5, width=8)
+site.plots
+dev.off()
+
+```
+
+#### Ecology and Isotopes data  
+- DBH calculations  
+- data mutating  
+```{r, HKP data, fig.show=FALSE}
+HKP.df<-read.csv("data/Hakalau.rawdata.csv")
+
+########## DBH 
+DBH.df<- HKP.df %>%
+  select(c(DBH..cm.1, DBH..cm.2, DBH..cm.3, DBH..cm.4, DBH..cm.5))
+
+# replace NAs with zeros
+DBH.df<- DBH.df %>%
+  mutate_each(funs(replace(., which(is.na(.)), 0)))
+
+# if only one trunk, then make new column and report this value
+DBH.df <- DBH.df %>%
+  mutate(DBH.1trunk = ifelse(DBH..cm.2>"0", 0, DBH..cm.1))
+
+# if multiple trunks, sum of squares and square root all trunks
+# and plug in the DBH for single trunks
+DBH.df <- DBH.df %>%
+  mutate(DBH.Total = ifelse(DBH.1trunk=="0",  
+                     sqrt(DBH..cm.1^2 + DBH..cm.2^2 + DBH..cm.3^2 + DBH..cm.4^2 + DBH..cm.5^2), DBH.1trunk))
+
+# replace zeros with NA now that total DBH has been calculated
+DBH.df$DBH.Total<-as.numeric(ifelse(DBH.df$DBH.Total=="0", "NA", DBH.df$DBH.Total))
+
+############ Canopy diameter
+# use area of an elipse, a x b x π, where a and b are major and minor radius
+Can.df<-HKP.df %>%
+  select(c(canopy.0..m, canopy.90..m, canopy.180..m, canopy.270..m))
+
+# Major radius is the average of 0 and 180 degrees
+Can.df<- Can.df %>% 
+  mutate(Maj.rad = rowMeans(cbind(canopy.0..m, canopy.180..m), na.rm=T))
+
+# Minor radius is the average of 90 and 270 degrees
+Can.df<- Can.df %>% 
+  mutate(Min.rad = rowMeans(cbind(canopy.90..m, canopy.270..m), na.rm=T))
+
+# Elipse area
+Can.df<- Can.df %>% 
+  mutate(Canopy.area = ifelse(Maj.rad>0, Maj.rad*Min.rad*3.14, "NA"))
+
+########################
+# combine DBH.Total and Canopy.area with isotope dataframe and reduce columns
+HKP.df$DBH.Total<-DBH.df$DBH.Total
+HKP.df$Canopy.area<-Can.df$Canopy.area
+
+# HKP.data is the full dataframe
+HKP.data<- HKP.df %>%
+  select(c(Plot, Position.point, Sample, DBH.Total, Canopy.area, d15N, d13C, N..percent, Total.N..mmol.gdw, C..percent, Total.C..mmol.gdw, C.N))
+
+write.csv(HKP.data, "data/Hakalau.fulldata.csv")
+
+```
+  
+#### Rubus and Koa relationship  
+- plotting the relationship between Rubus and Koa d15N  
+- took average of 3 closest Koa trees to each Rubus plant  
+- plot Rubus d15N against Koa d15N (mean of 3 trees)  
+
+```{r rubus and koa, fig.cap="Figure 2a. Relationship between d15N-Koa and 15N-Rubus at two sampling sites.", fig.align='center', results='hide'}
+Ndfa<-read.csv("data/Ndfa.Rub.csv")
+
+# rename the d15N so we know it is for rubus
+Ndfa$d15N.Rub<-Ndfa$d15N
+Ndfa$d15N.Koa<-Ndfa$mean.d15N.Ndfa
+
+####################
+#################### relationship between koa and rubus d15N?
+# Yes, but a bit stronger in the RK site
+mod.KP<-lm(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="KP"),]$d15N.Koa); anova(mod.KP)
+int.rubKP<-coef(summary(mod.KP))[1] #intercept
+slop.rubKP<-coef(summary(mod.KP))[2] #slope
+                                  
+mod.RK<-lm(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="RK"),]$d15N.Koa); anova(mod.RK)
+int.RKoa<-coef(summary(mod.RK))[1] #intercept
+slop.RKoa<-coef(summary(mod.RK))[2] #slope
+
+#### plot
+BW.back<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size=0.2))
+
+Rub.Koa.d15N.plot<-ggplot(data=Ndfa, aes(x=d15N.Koa, y=d15N.Rub, color=Plot))+
+  geom_point(aes(color=Plot), alpha=.8) + 
+  scale_color_manual(values=c('gray30', "gray70")) +
+  coord_equal() + theme_bw() +
+  xlab(expression(paste(italic("Acacia koa "), delta^{15}, N, " (\u2030)"), sep=""))+
+  ylab(expression(paste(italic("Rubus"), " spp. ", delta^{15}, N, " (\u2030)"), sep="")) +
+  guides(colour=guide_legend(override.aes = list(stroke=1, fill=NA, alpha=1))) +
+  geom_smooth(method = "lm", alpha = .15, size=0.6) +
+  theme(legend.title = element_blank(),
+        axis.text=element_text(size=6),
+        axis.title=element_text(size=10))+
+  annotate(geom="text", x=2.7, y=0.8, label=expression(paste("KP ", italic("p"), "=0.056")), size=2) +
+  annotate(geom="text", x=2.7, y=0.6, label=expression(paste("RK ", italic("p="), bold("0.006"))), size=2) +
+  BW.back
+
+Rub.Koa.d15N.plot
+dev.copy(pdf, "figures/Fig 3.Koa.Rub.regr.pdf", width=4, height=4, encod="MacRoman")
+dev.off()
+```
+  
+
+#### DBH, Canopy  d15N models  
+- plot against d15N values with model curves
+- scatters with models
+- d15N differ by PLOT (KP vs RK), no other effects or relationship with DBH or Canopy
+
+```{r, d15N and DBH Canopy, eval=FALSE}
+# ** No relationship between d15N and DBH or Canopy at plot level**
+# ** Effects at PLOTs on d15N (lower in KP) **
+
+
+######## plot of d15N and DBH, and d15N and Canopy area
+
+# all samples
+par(mfrow=c(1,2), mar=c(4,5,1,1))
+
+#### DBH
+mod.DBH<-lm(d15N~DBH.Total*Plot, data=HKP.data) # no interaction effect
+
+mod.DBH<-lm(d15N~DBH.Total+Plot, data=HKP.data)
+int<-coef(summary(mod.DBH))[1]
+DBH.slope<-coef(summary(mod.DBH))["DBH.Total",1] # DBH (slope for all figures)
+RK.int<-coef(summary(mod.DBH))["PlotRK",1] # RK, KP = 0
+
+
+# no significant relationship to d15N but a trend for DECREASE with DBH
+plot(d15N~DBH.Total, data=HKP.data,
+    col=c("coral","dodgerblue")[as.factor(Plot)],
+    pch=c(1,2)[as.factor(Plot)],
+    ylab=expression(paste(delta^{15}, N, " (\u2030, air)")),
+    xlab="DBH (cm)",
+    ylim=c(0,5), xlim=c(0,60))
+    ablineclip(int, DBH.slope, col="coral", lwd=2, 
+               x1 = min(HKP.data$DBH.Total[HKP.data$Plot=="KP"], na.rm=T), 
+               x2 = max(HKP.data$DBH.Total[HKP.data$Plot=="KP"], na.rm=T)) # KP model
+    ablineclip((int+ RK.int), DBH.slope, col="dodgerblue", lwd=2, 
+               x1 = min(HKP.data$DBH.Total[HKP.data$Plot=="RK"], na.rm=T), 
+               x2 = max(HKP.data$DBH.Total[HKP.data$Plot=="RK"], na.rm=T)) # RK model
+
+    
+#### Canopy
+mod.Can<-lm(d15N~Canopy.area*Plot, data=HKP.data) # no interaction
+
+mod.Can<-lm(d15N~Canopy.area+Plot, data=HKP.data)
+int<-coef(summary(mod.Can))[1]
+Can.slope<-coef(summary(mod.Can))["Canopy.area",1] # DBH (slope for all figures)
+RK.int<-coef(summary(mod.Can))["PlotRK",1] # RK, KP = 0
+
+# no significant relationship to d15N but a trend for INCREASE with canopy area
+plot(d15N~Canopy.area, data=HKP.data, yaxt="n",
+     col=c("coral","dodgerblue")[as.factor(Plot)],
+     pch=c(1,2)[as.factor(Plot)],
+     xlab=expression(paste("Canopy (m"^2,")")),
+     ylab="", 
+     ylim=c(0,5), xlim=c(0,80))
+     axis(side=2, labels=F)
+     ablineclip(int, Can.slope, col="coral", lwd=2, 
+               x1 = min(HKP.data$Canopy.area[HKP.data$Plot=="KP"], na.rm=T), 
+               x2 = max(HKP.data$Canopy.area[HKP.data$Plot=="KP"], na.rm=T)) # KP model
+     ablineclip((int+ RK.int), Can.slope, col="dodgerblue", lwd=2, 
+               x1 = min(HKP.data$Canopy.area[HKP.data$Plot=="RK"], na.rm=T), 
+               x2 = max(HKP.data$Canopy.area[HKP.data$Plot=="RK"], na.rm=T)) # RK model
+     legend("topright", legend=levels(HKP.data$Plot), box.lty=0, bg="transparent", lty=1, pch=c(1,2), 
+            col=c("coral", "dodgerblue"), cex=1)
+
+dev.copy(pdf, "figures/d15N.DBH.Canopy.pdf", width=7, height=5, encod="MacRoman")
+dev.off()
+```
+  
+With Plot being most important effect, divide DBH and Canopy to be plot mean +/- SE  
+*Supplemental Figure 1. with afforested and remnant forests*   
+- DBH and Canopy figure as bar chart and means
+- using Mann-Whitney nonparametric tests: significant plot effects
+- greater DBH (KP), trend for greater Canopy (RK)  
+  
+```{r DBH and Canopy, fig.show='hide'}
+## Models
+mod.DBH<-lm(DBH.Total~Plot, data=HKP.data); anova(mod.DBH) # signif
+mod.Can<-lm(Canopy.area~Plot, data=HKP.data); anova(mod.Can) # not signif, a bit wobbly in assumptions
+
+# diagnostic plots
+for(i in c(4:5)){
+  Y<-HKP.data[,i]
+  full<-lm(Y~Plot, data=HKP.data, na.action=na.exclude)
+  R <- resid(full) #save glm residuals
+  op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
+  plot(full, add.smooth = FALSE, which=1)
+  QQ <- qqnorm(R, main = colnames(HKP.data)[i]) 
+  QQline <- qqline(R)
+  hist(R, xlab="Residuals", main = colnames(HKP.data)[i])
+  plot(HKP.data$Plot, R, xlab=colnames(HKP.data)[i], ylab="Residuals")
+}
+
+# Mann-Whitney U-Test
+mwu(HKP.data, DBH.Total, Plot) # signif
+mwu(HKP.data, Canopy.area, Plot) # not
+```
+
+```{r mean plots for DBH and Canopy, Fig.cap="Supplementary Figure 1. Mean +/- SE diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center', results='hide'}
+#### plots
+DBH.m<-aggregate(DBH.Total~Plot, data=HKP.data, mean)
+Can.m<-aggregate(Canopy.area~Plot, data=HKP.data, mean)
+canopy.mean<-aggregate(Canopy.area~Plot, data=HKP.data, sum) 
+
+DBH.SE<-aggregate(DBH.Total~Plot, data=HKP.data, std.error)
+Can.SE<-aggregate(Canopy.area~Plot, data=HKP.data, std.error)
+
+DBH.n<-aggregate(DBH.Total~Plot, data=HKP.data, length)
+Can.n<-aggregate(Canopy.area~Plot, data=HKP.data, length)
+
+mean.eco<-cbind(DBH.m, Can.m[2], DBH.SE[2], Can.SE[2]); colnames(mean.eco)<-c("Plot", "DBH", "Can", "D.SE", "C.SE")
+
+pd <- position_dodge(0.7) #offset for error bars
+
+BW.back2<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black", size=0.4))
+
+### DBH plot of mean/SE by plot
+DBH.plot<-ggplot(data=mean.eco, aes(x=Plot, y=DBH))+
+  geom_bar(stat="identity", position = pd, width=0.7, fill="gray70")+
+  geom_errorbar(aes(ymin=DBH-D.SE, ymax=DBH+D.SE), size=.5, width=0, position=pd) +
+  xlab("Plots") +
+  ylab("dbh (cm)") + 
+  theme(legend.title = element_blank(),
+        axis.text=element_text(size=6),
+        axis.title=element_text(size=8))+
+  annotate(geom="text", x=1.5, y=35, label=expression(paste(bold("*"))), size=4) +
+  BW.back2
+
+### Canopy plot of mean/SE by plot
+Canopy.plot<-ggplot(data=mean.eco, aes(x=Plot, y=Can))+
+  geom_bar(stat="identity", position = pd, width=0.7, fill="gray70")+
+  geom_errorbar(aes(ymin=Can-C.SE, ymax=Can+C.SE), size=.5, width=0, position=pd) +
+  xlab("Plots") +
+  ylab(expression(paste("Canopy (m"^2,")"))) + 
+  theme(legend.title = element_blank(),
+        axis.text=element_text(size=6),
+        axis.title=element_text(size=8))+
+  BW.back2
+
+#  figures together
+plot_grid(DBH.plot, Canopy.plot,
+     labels=c('a', 'b'), label_size=8, hjust=-1, vjust= 3, ncol=2, nrow=1)
+dev.copy(pdf, "figures/Supp.Fig1.DBHCanopy.pdf", width=4, height=3.5, encod="MacRoman")
+dev.off()
+
+```
+  
+Run statistics on the responses (dd15N, 13C, tissue C and N)
+```{r, stats on responses, results='hide', fig.show='hide'}
+
+# models
+## tests for assumptions
+for(i in c(6:12)){
+  Y<-HKP.data[,i]
+  full<-lm(Y~Plot+Sample, data=HKP.data, na.action=na.exclude)
+  R <- resid(full) #save glm residuals
+ 
+  op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
+  plot(full, add.smooth = FALSE, which=1)
+  QQ <- qqnorm(R, main = colnames(HKP.data)[i]) 
+  QQline <- qqline(R)
+  hist(R, xlab="Residuals", main = colnames(HKP.data)[i])
+  plot(HKP.data$Plot, R, xlab=colnames(HKP.data)[i], ylab="Residuals")
+  plot(HKP.data$Sample, R, xlab=colnames(HKP.data)[i], ylab="Residuals")
+}
+
+########## Separate dataframes
+# make a factor for "plants" or "soil"
+HKP.data<-HKP.data %>%
+  mutate(Sample.Type = ifelse(Sample=="Soil", "Soil", "Plants"))
+
+#all plants
+plants<-HKP.data[(HKP.data$Sample.Type=="Plants"),]
+
+# make level to contrast Koa vs Rubus spp
+plants<-plants %>%
+  mutate(Plant.Type = ifelse(Sample=="Koa", "Koa", "Rubus spp"))
+
+#only Koa
+Koa<-HKP.data[(HKP.data$Sample=="Koa"),]
+
+#only Rubus
+Rubus<-HKP.data[(HKP.data$Sample=="RUBARG" | HKP.data$Sample=="RUBHAW"),]
+
+# only KP (or RK) and only plants in those sites
+KP.df<-HKP.data[(HKP.data$Plot=="KP"),]; KP.df.plants<-KP.df[(KP.df$Sample.Type=="Plants"),]
+RK.df<-HKP.data[(HKP.data$Plot=="RK"),]; RK.df.plants<-RK.df[(RK.df$Sample.Type=="Plants"),]
+
+```
+  
+**d15N models**
+```{r, d15N, fig.show='hide'}
+######## Nitrogen isotopes
+d15N.plants<-lm(d15N~Plot, data=plants); anova(d15N.plants) # plants signif.
+plot(allEffects(d15N.plants))
+
+d15N.Koa<-lm(d15N~Plot, data=Koa); anova(d15N.Koa) # Koa signif.
+plot(allEffects(d15N.Koa))
+
+d15N.Rubus<-lm(d15N~Plot, data=Rubus); anova(d15N.Rubus) # Rubus signif.
+plot(allEffects(d15N.Rubus))
+
+# only in KP
+# only comparing the 2 plant species 
+d15N.KP<-lm(d15N~Sample, data=KP.df.plants); anova(d15N.KP) #only koa vs. rubus comparision, signif.
+plot(allEffects(d15N.KP)) 
+
+# only in RK
+# only comparing the 2 plant species 
+d15N.RK<-lm(d15N~Sample, data=RK.df.plants); anova(d15N.RK) #only koa vs. rubus comparision, signif.
+plot(allEffects(d15N.RK))
+
+```
+  
+**d13C models**
+```{r, d13C, fig.show='hide'}
+######## ######## 
+######## Carbon isotopes
+d13C.plants<-lm(d13C~Plot, data=plants); anova(d13C.plants) # plants signif.
+plot(allEffects(d13C.plants))
+
+d13C.Koa<-lm(d13C~Plot, data=Koa); anova(d13C.Koa) # Koa signif.
+plot(allEffects(d13C.Koa))
+
+d13C.Rubus<-lm(d13C~Plot, data=Rubus); anova(d13C.Rubus) # Rubus signif.
+plot(allEffects(d13C.Rubus))
+
+d13C.KP<-lm(d13C~Sample, data=KP.df.plants); anova(d13C.KP) #only koa vs. rubus comparision
+plot(allEffects(d13C.KP))
+
+d13C.RK<-lm(d13C~Sample, data=RK.df.plants); anova(d13C.RK) #only koa vs. rubus comparision
+plot(allEffects(d13C.RK))
+
+
+```
+ 
+**Nitrogen content models**
+```{r, N content, fig.show='hide'}
+####### Nitrogen content
+TN.plants<-lm(Total.N..mmol.gdw~Plot, data=plants); anova(TN.plants) # plants not signif by plot
+plot(allEffects(TN.plants))
+
+TN.Koa<-lm(Total.N..mmol.gdw~Plot, data=Koa); anova(TN.Koa) # Koa not signif by plot
+plot(allEffects(TN.Koa))
+
+TN.Rubus<-lm(Total.N..mmol.gdw~Plot, data=Rubus); anova(TN.Rubus) # Rubus trend by plot
+plot(allEffects(TN.Rubus))
+
+N.KP<-lm(Total.N..mmol.gdw~Sample, data=KP.df.plants); anova(N.KP) #only koa vs. rubus comparision, signif.
+plot(allEffects(N.KP)) 
+
+N.RK<-lm(Total.N..mmol.gdw~Sample, data=RK.df.plants); anova(N.RK) #only koa vs. rubus comparision, signif.
+plot(allEffects(N.RK))
+
+```
+ 
+**Carbon content models**
+```{r, C content, fig.show='hide'}
+######## ######## 
+######## Carbon content
+TC.plants<-lm(Total.C..mmol.gdw~Plot, data=plants); anova(TC.plants) # plants signif.
+plot(allEffects(TC.plants))
+
+TC.Koa<-lm(Total.C..mmol.gdw~Plot, data=Koa); anova(TC.Koa) # Koa signif.
+plot(allEffects(TC.Koa))
+
+TC.Rubus<-lm(Total.C..mmol.gdw~Plot, data=Rubus); anova(TC.Rubus) # Rubus signif.
+plot(allEffects(TC.Rubus))
+
+C.KP<-lm(Total.C..mmol.gdw~Sample, data=KP.df.plants); anova(C.KP) #only koa vs. rubus comparision, signif.
+plot(allEffects(C.KP)) 
+
+C.RK<-lm(Total.C..mmol.gdw~Sample, data=RK.df.plants); anova(C.RK) #only koa vs. rubus comparision, signif.
+plot(allEffects(C.RK))
+
+```
+  
+**C:N models**
+```{r, CN values, fig.show='hide'}
+####### C:N content
+CN.plants<-lm(C.N~Plot, data=plants); anova(CN.plants) # not signif.
+
+CN.Koa<-lm(C.N~Plot, data=Koa); anova(CN.Koa) # not signif.
+
+CN.Rubus<-lm(C.N~Plot, data=Rubus); anova(CN.Rubus) # not signif
+
+CN.KP<-lm(C.N~Sample, data=KP.df.plants); anova(CN.KP) #only koa vs. rubus comparision, signif.
+plot(allEffects(CN.KP)) 
+
+CN.RK<-lm(C.N~Sample, data=RK.df.plants); anova(CN.RK) #only koa vs. rubus comparision, not signif
+plot(allEffects(CN.RK))
+
+```
+
+*Figure 2*   
+data means and SE for plots  
+- bar plots of d13C, d15N, TC and TN for all 4 samples types with asterisks for significant effects
+
+```{r, plots of isotope data, Fig.cap="Supplementary Figure 2. Mean +/- SE of sample (a) d13C, (b) d15N, (c) total carbon, and (d) total nitrogen.", fig.align='center', message=FALSE, results='hide'}
+## make some means and SE
+d13C.m<-aggregate(d13C~Plot+Sample, data=HKP.data, mean)
+d15N.m<-aggregate(d15N~Plot+Sample, data=HKP.data, mean)
+TN.m<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=HKP.data, mean)
+TC.m<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=HKP.data, mean)
+CN.m<-aggregate(C.N~Plot+Sample, data=HKP.data, mean)
+
+d13C.SE<-aggregate(d13C~Plot+Sample, data=HKP.data, std.error)
+d15N.SE<-aggregate(d15N~Plot+Sample, data=HKP.data, std.error)
+TN.SE<-aggregate(Total.N..mmol.gdw~Plot+Sample, data=HKP.data, std.error)
+TC.SE<-aggregate(Total.C..mmol.gdw~Plot+Sample, data=HKP.data, std.error)
+CN.SE<-aggregate(C.N~Plot+Sample, data=HKP.data, std.error)
+
+d13C.n<-aggregate(d13C~Plot+Sample, data=HKP.data, length)
+d15N.n<-aggregate(d15N~Plot+Sample, data=HKP.data, length)
+
+mean.data<- cbind(d13C.m, d15N.m[3], TN.m[3], TC.m[3], d13C.SE[3], d15N.SE[3], TN.SE[3], TC.SE[3], CN.m[3], CN.SE[3])
+colnames(mean.data)<-c("Plot", "Sample", "d13C.mean", "d15N.mean", "TN.mean", "TC.mean", "d15N.SE", "d13C.SE", "TN.SE", "TC.SE", "CN.mean", "CN.SE")
+
+# rename Rubus species for plotting
+levels(mean.data$Sample)[levels(mean.data$Sample)=="RUBARG"] <- "Rubus spp"
+levels(mean.data$Sample)[levels(mean.data$Sample)=="RUBHAW"] <- "Rubus spp"
+
+mean.data$Sample<-factor(mean.data$Sample, levels=c("Soil", "Koa", "Rubus spp"))
+
+### make mean plots
+pd <- position_dodge(0.7) #offset for error bars
+
+### d13C
+d13C.plot<-ggplot(data=mean.data, aes(x=Sample, y=d13C.mean, fill=Plot, group=Plot))+
+  geom_bar(stat="identity", position = pd, width=0.7)+
+  geom_errorbar(aes(ymin=d13C.mean-d13C.SE, ymax=d13C.mean+d13C.SE), size=.3, width=0, position=pd) +
+  scale_fill_manual(values=c('gray65', "gray89")) +
+  xlab("Sample Type") + 
+  annotate(geom="text", x=1, y=-27.5, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=2, y=-33, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=3, y=-33, label=expression(paste(bold("*"))), size=4) +
+  theme(text = element_text(size=8)) +
+  ylab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))) + BW.back2
+
+### d15N
+d15N.plot<-ggplot(data=mean.data, aes(x=Sample, y=d15N.mean, fill=Plot, group=Plot))+
+  geom_bar(stat="identity", position = pd, width=0.7)+ ylim(c(0,8)) +
+  geom_errorbar(aes(ymin=d15N.mean-d15N.SE, ymax=d15N.mean+d15N.SE), size=.3, width=0, position=pd) +
+  scale_fill_manual(values=c('gray65', "gray89")) +
+  xlab("Sample Type") + 
+  theme(text = element_text(size=8)) +
+  annotate(geom="text", x=2, y=2.8, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=3, y=3.3, label=expression(paste(bold("*"))), size=4) +
+  ylab(expression(paste(delta^{15}, N, " (\u2030, air)"))) + BW.back2
+
+### total Carbon
+TC.plot<-ggplot(data=mean.data, aes(x=Sample, y=TC.mean, fill=Plot, group=Plot))+
+  geom_bar(stat="identity", position = pd, width=0.7)+ ylim(c(0, 60)) +
+  geom_errorbar(aes(ymin=TC.mean-TC.SE, ymax=TC.mean+TC.SE), size=.3, width=0, position=pd) +
+  scale_fill_manual(values=c('gray65', "gray89")) +
+  xlab("Sample Type") + 
+  theme(text = element_text(size=8)) +
+  annotate(geom="text", x=1, y=25, label=expression(paste(bold("*"))), size=4) +
+  annotate(geom="text", x=3, y=42, label=expression(paste(bold("*"))), size=4) +
+  ylab("Total Carbon (mmol/gdw)") + BW.back2
+
+### total Nitrogen
+TN.plot<-ggplot(data=mean.data, aes(x=Sample, y=TN.mean, fill=Plot, group=Plot))+
+  geom_bar(stat="identity", position = pd, width=0.7)+
+  geom_errorbar(aes(ymin=TN.mean-TN.SE, ymax=TN.mean+TN.SE), size=.3, width=0, position=pd) +
+  scale_fill_manual(values=c('gray65', "gray89")) +
+  xlab("Sample Type") + 
+  theme(text = element_text(size=8)) +
+  ylab("Total Nitrogen (mmol/gdw)") + BW.back2
+
+# get the legend, # create some space to the left of the legend
+bar.legend <- get_legend(
+  TN.plot + theme(legend.box.margin = margin(0, 0, 0, 12)) + 
+    theme(legend.key.size = unit(0.3, "cm")))
+
+#  figures together
+bar.plots<-plot_grid(d15N.plot + theme(legend.position = "none"), 
+                     d13C.plot + theme(legend.position = "none"),
+                     TN.plot + theme(legend.position = "none"),
+                     TC.plot + theme(legend.position = "none"), 
+                     nrow=1, ncol=4, labels=c('a', 'b', 'c', 'd'), 
+          label_size=8, hjust=-1, vjust= 3)
+
+plot_grid(bar.plots, bar.legend, rel_widths = c(8, 1)) # legend  1/8 size as first obj.
+dev.copy(pdf, "figures/Fig 2.mean.data.sample.pdf", width=7, height=3, encod="MacRoman")
+dev.off()
+```
+  
+### ISO-KRIG
+Give the data a "krig-over".  
+  
+First, make krigs of the full plot and all data layers
+```{r, krig setup, message=FALSE, results='hide'}
+# load data
+krig<-read.csv("data/krig.matrix.csv") # matrix of points for isoscape grid
+
+
+# merge kriging data with isotope data
+data.merge<-as.data.frame(join_all(list(HKP.data, krig), by = "Position.point", type='full'))
+
+data.merge<-data.merge[c(-167:-194),] # drop NAs where no samples tKPen
+scape.data<-data.merge
+
+write.csv(scape.data, "output/scape.data.csv")
+
+#################
+```
+
+#### δ^15^N pooled isoscape   
+setup
+```{r, krig d15N, message=FALSE, results='hide', fig.show='hide'}
+################# d15N krigs
+################# make site maps based on bubble plots
+set.seed(100)
+
+# just KP site
+krig.KP<- scape.data %>% filter(Plot=="KP")
+krig.KP$Sample<-droplevels(krig.KP$Sample)
+
+# modify one point slightly due to overlap of coordinate system
+krig.KP$y.matrix[24]=2.4; krig.KP$y.meter[24]=2.4
+krig.KP$x.matrix[24]=5.4; krig.KP$x.meter[24]=5.4
+
+KP.map<-krig.KP %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d15N, color=Sample), alpha=3/4) + 
+  ggtitle("KP plot--d15N (permil)") + coord_equal() + theme_bw()
+
+# just RK site
+krig.RK<- scape.data %>% filter(Plot=="RK")
+krig.RK$Sample<-droplevels(krig.RK$Sample)
+
+RK.map<-krig.RK %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d15N, color=Sample), alpha=3/4) +
+  ggtitle("RK plot--d15N (permil)") + coord_equal() + theme_bw()
+
+plot_grid(RK.map, KP.map, ncol=2, nrow=1)
+dev.copy(pdf, "figures/notused/dot.scape.pdf", width=9, height=4, encod="MacRoman")
+dev.off()
+
+#####################
+#####################
+```
+  
+First generate an isoscape for the compelte pooled sample set: the soil, koa, and *Rubus*. Do this for each of the two forests.  Figure 4ab
+  
+*Acacia koa* plantation (KP) δ^15^N isoscape
+```{r, krig KP d15N, message=FALSE, results='hide'}
+## Krig KP sites
+coordinates(krig.KP)<- ~x.meter + y.meter
+
+# Create a grid of "Pixels" using x as columns and y as rows
+# And the rows and columns of pixels:
+Columns=seq(from=-1, to=36, by=0.05)
+Rows=seq(from=-1, to=21, by=0.05)
+Grid.KP <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.KP) <- ~ x+y
+gridded(Grid.KP) <- TRUE # Plot the grid and points
+
+## expand binding box 
+#krig.KP@bbox # current data binding box
+x<-c(-1, 36)
+y<-c(-1, 21)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+krig.KP@bbox<-bbox(S) # expanded binding box for data
+Grid.KP@bbox<-bbox(S) # expand for plot corner
+
+# autokrige
+d15N.KP.auto <- autoKrige(d15N ~ 1, krig.KP, Grid.KP) # ordinary kriging
+plot(d15N.KP.auto, sp.layout = list(pts = list("sp.points", krig.KP)))
+#d15N.KP.auto$krige_output
+
+# make to dataframes for lm, combine
+KP.pred.N <- d15N.KP.auto[1] %>% as.data.frame() # model predictions
+KP.df.N <- krig.KP %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.KP.df.N<- left_join(KP.df.N, KP.pred.N, by = c("x.meter"="krige_output.x")) # longest axis is x
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.KP.df.N)
+summary(mod) #R squared = 0.21
+
+mean(pred.KP.df.N$krige_output.var1.pred, na.rm=T) # mean of predictions 4.4 d15N
+mean(pred.KP.df.N$krige_output.var1.stdev, na.rm=T) # 2.1
+
+# inspect model
+# plot(pred.KP.df.N$krige_output.var1.pred ~ pred.KP.df.N$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "RdBu")
+
+### map in automap
+#automapPlot(d15N.KP.auto$krige_output, "var1.pred", sp.layout = list("sp.points", krig.KP, pch=16, col="gray20", cex=0.5), col.regions=my.palette)
+
+# map in ssplot
+# note that the prediction "var1.pred" component of the krig is a SpatialPixelsDataFrame. Need to call the krig, then the component df("krige_output"), then the output column ("var1.pred") to plot in spplot
+
+# variance
+# spplot(d15N.KP.auto$krige_output,"var1.stdev")
+
+#predicted krige
+my.palette2 <- brewer.pal(n = 6, name = "BuGn")
+my.palette3 <- colorRampPalette(c("firebrick1", "darkseagreen1", "azure1"))(4)
+col.scheme.N <- colorRampPalette(my.palette3)
+
+
+plotd15N.krig.KP<-spplot(d15N.KP.auto$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
+
+
+###########################
+```
+
+Remnant Forest (RK) δ^15^N isoscape
+```{r, krig RK d15N, message=FALSE, results='hide'}
+###########################
+# RK Site Krig
+###########################
+## Krig RK site 
+krig.RK<- scape.data %>% filter(Plot=="RK")
+krig.RK$Sample<-droplevels(krig.RK$Sample)
+
+
+coordinates(krig.RK)<- ~x.meter + y.meter
+
+Columns=seq(from=-1, to=21, by=0.05)
+Rows=seq(from=-1, to=36, by=0.05)
+Grid.RK <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.RK) <- ~ x+y
+gridded(Grid.RK) <- TRUE # Plot the grid and points
+
+## expand binding box 
+#krig.RK@bbox # current data binding box
+x<-c(-1, 21)
+y<-c(-1, 36)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+Grid.RK@bbox<-bbox(S) # expand for plot corner
+
+# autokrige
+# 'fix.values' = The items describe the fixed value for the nugget (y-intercept), range (of interprolation) and sill(asymptote) respectively. Setting the value to NA means that the value is not fixed. Is passed on to autofitVariogram.
+# The nugget is the y-intercept of the variogram. In practical terms, the nugget represents the small-scale variability of the data. A portion of that short range variability can be the result of measurement error. 
+# The range is the distance after which the variogram levels off. The physical meaning of the range is that pairs of points that are this distance or greater apart are not spatially correlated. 
+# The sill is the total variance contribution, or the maximum variability between pairs of points. 
+
+# increasing the range gave better fit than auto
+d15N.RK.auto <- autoKrige(d15N ~ 1, krig.RK, Grid.RK, fix.value=c(NA, 2, NA)) # ordinary kriging
+plot(d15N.RK.auto, sp.layout = list(pts = list("sp.points", krig.RK)))
+#d15N.RK.auto$krige_output
+
+# make to dataframes for lm, combine
+RK.pred.N <- d15N.RK.auto[1] %>% as.data.frame() # model predictions
+RK.df.N <- krig.RK %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+# longest axis here is y
+pred.RK.df.N<- left_join(RK.df.N, RK.pred.N, by = c("x.meter"="krige_output.x"))
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.RK.df.N)
+summary(mod) #R squared = 0.21
+mean(pred.RK.df.N$krige_output.var1.pred, na.rm=T) # mean of predictions 4.9 d15N
+mean(pred.RK.df.N$krige_output.var1.stdev, na.rm=T) # 1.9
+
+# inspect model
+# plot(pred.RK.df.N$krige_output.var1.pred ~ pred.RK.df.N$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+#predicted krige
+plotd15N.krig.RK<-spplot(d15N.RK.auto$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
+                        col="black", cex=0.5, alpha=0.5), 
+       main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.7))
+```
+
+combine the KP-RK d15N pooled isoscape
+```{r, krig KPRK d15N, message=FALSE, results='hide'}
+#####################
+grid.draw.ggmatrix <- function(x, recording = TRUE) {
+  print(x)
+}
+### combined KP-Rk krig d15N plot 
+par(mfrow=c(1,2))
+gridExtra::grid.arrange(plotd15N.krig.KP, plotd15N.krig.RK, ncol=2, nrow=1, widths = c(1.2,1))
+dev.copy(png, "figures/Fig4_ab.d15N.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
+dev.off()
+
+
+```
+
+
+#### δ^13^C pooled isoscape  
+setup
+```{r, krig d13C, results='hide'}
+################# d13C krigs
+################# make site maps based on bubble plots
+
+KP.map<-krig.KP %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d13C, color=Sample), alpha=3/4) + 
+  ggtitle("KP plot--d13C (permil)") + coord_equal() + theme_bw()
+
+
+RK.map<-krig.RK %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d13C, color=Sample), alpha=3/4) +
+  ggtitle("RK plot--d13C (permil)") + coord_equal() + theme_bw()
+
+plot_grid(RK.map, KP.map, ncol=2, nrow=1)
+dev.copy(pdf, "figures/notused/dot.scape.d13C.pdf", width=9, height=4, encod="MacRoman")
+dev.off()
+
+#####################
+#####################
+```
+
+*Acacia koa* plantation (KP) d13C isoscape
+```{r, krig KP d13C, message=FALSE, results='hide'}
+
+# autokrige
+d13C.KP.auto <- autoKrige(d13C ~ 1, krig.KP, Grid.KP) # ordinary kriging
+plot(d13C.KP.auto, sp.layout = list(pts = list("sp.points", krig.KP)))
+#d13C.KP.auto$krige_output
+
+# make to dataframes for lm, combine
+KP.pred.C <- d13C.KP.auto[1] %>% as.data.frame() # model predictions
+KP.df.C <- krig.KP %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.KP.df.C<- left_join(KP.df.C, KP.pred.C, by = c("x.meter"="krige_output.x")) # longest axis is x
+mod <- lm(krige_output.var1.pred ~ d13C, data=pred.KP.df.C)
+summary(mod) #R squared = 0.24
+
+mean(pred.KP.df.C$krige_output.var1.pred, na.rm=T) # mean of predictions -25.9 d13C
+mean(pred.KP.df.C$krige_output.var1.stdev, na.rm=T) # 2.3
+
+# inspect model
+# plot(pred.KP.df.C$krige_output.var1.pred ~ pred.KP.df.C$d13C, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "RdBu")
+
+# map in automap
+#automapPlot(d13C.KP.auto$krige_output, "var1.pred", sp.layout = list("sp.points", krig.KP, pch=16, col="gray20", cex=0.5), col.regions=my.palette)
+
+# map in ssplot
+# variance
+# spplot(d13C.KP.auto$krige_output,"var1.stdev")
+
+#predicted krige
+my.palette4 <- colorRampPalette(c("firebrick1", "paleturquoise2", "azure1"))(4)
+col.scheme.C <- colorRampPalette(my.palette4)
+
+
+plotd13C.krig.KP<-spplot(d13C.KP.auto$krige_output["var1.pred"], col.regions=col.scheme.C, 
+       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample],
+                        col="black", cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{13}, C, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
+
+
+###########################
+```
+
+Remnant Forest (RK) d13C isoscape: Figure 4cd
+```{r, krig RK d13C, message=FALSE, results='hide'}
+###########################
+# RK Site Krig
+###########################
+## Krig RK site 
+
+# autokrige
+d13C.RK.auto <- autoKrige(d13C ~ 1, krig.RK, Grid.RK, fix.value=c(NA, 1, NA)) # ordinary kriging
+plot(d13C.RK.auto, sp.layout = list(pts = list("sp.points", krig.RK)))
+#d13C.RK.auto$krige_output
+
+# make to dataframes for lm, combine
+RK.pred.C <- d13C.RK.auto[1] %>% as.data.frame() # model predictions
+RK.df.C <- krig.RK %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+# longest axis here is y
+pred.RK.df.C<- left_join(RK.df.C, RK.pred.C, by = c("x.meter"="krige_output.x"))
+mod <- lm(krige_output.var1.pred ~ d13C, data=pred.RK.df.C)
+summary(mod) #R squared = 0.33
+
+mean(pred.RK.df.C$krige_output.var1.pred, na.rm=T) # mean of predictions -27.6 d13C
+mean(pred.RK.df.C$krige_output.var1.stdev, na.rm=T) # 2.8
+
+# inspect model
+# plot(pred.RK.df.C$krige_output.var1.pred ~ pred.RK.df.C$d13C, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# map in automap
+#automapPlot(d13C.RK.auto$krige_output, "var1.pred", sp.layout = list("sp.points", krig.RK), col.regions=my.palette)
+
+# variance
+# spplot(d13C.RK.auto$krige_output,"var1.stdev")
+
+#predicted krige
+plotd13C.krig.RK<-spplot(d13C.RK.auto$krige_output["var1.pred"], col.regions=col.scheme.C, 
+       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample],
+                        col="black", cex=0.5, alpha=0.5), 
+       main=list(label=expression(paste(delta^{13}, C, " - RK (Remnant Forest)")), cex=0.7))
+```
+
+combine the plots
+```{r, krig KPRK d13C, message=FALSE, results='hide'}
+#####################
+grid.draw.ggmatrix <- function(x, recording = TRUE) {
+  print(x)
+}
+### combined KP-Rk krig d13C plot 
+par(mfrow=c(1,2))
+gridExtra::grid.arrange(plotd13C.krig.KP,plotd13C.krig.RK, ncol=2, nrow=1, widths = c(1.2,1))
+dev.copy(png, "figures/Fig4_cd.d13C.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
+dev.off()
+
+
+```
+
+#### Density plots: pooled samples  
+Density plots using predictions of N and C values for all sample types: the soil, koa, and *Rubus*. 
+```{r, density plots fig S2, fig.show='hold', out.height='70%', message=FALSE, results='hide'}
+
+###################
+# make density plots using predictions
+# combine the predictions for each plot
+KP.df.out.N<-as.data.frame(KP.pred.N$krige_output.var1.pred); KP.df.out.N$Plot<-"KP"
+RK.df.out.N<-as.data.frame(RK.pred.N$krige_output.var1.pred); RK.df.out.N$Plot<-"RK"; 
+colnames(KP.df.out.N)<-c("d15N.pred", "Plot")
+colnames(RK.df.out.N)<-c("d15N.pred", "Plot")
+
+# new dataframe
+pred.dat.N<-rbind(KP.df.out.N, RK.df.out.N)
+pred.dat.N$Plot<-as.factor(pred.dat.N$Plot)
+pred.dat.N %>% 
+  group_by(Plot) %>%
+  summarise(no_rows = length(Plot))
+
+#man whitney for significance (not normal data)
+mwu(pred.dat.N, d15N.pred, Plot) # signif difference in predictions (p<0.001)
+
+# Density plot
+
+# plot.means
+predict.mean.N <- ddply(pred.dat.N, "Plot", summarise, grp.mean=mean(d15N.pred, na.rm=TRUE))
+predict.SD.N <- ddply(pred.dat.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
+
+
+density.predict.N<-ggplot(pred.dat.N, aes(x=d15N.pred)) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+
+  xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+  scale_color_manual(values=c("#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
+             linetype="dashed", lwd=0.2) + BW.back2
+
+
+######## Carbon
+
+
+###################
+# make density plots using predictions
+# combine the predictions for each plot
+KP.df.out.C<-as.data.frame(KP.pred.C$krige_output.var1.pred); KP.df.out.C$Plot<-"KP"
+RK.df.out.C<-as.data.frame(RK.pred.C$krige_output.var1.pred); RK.df.out.C$Plot<-"RK"; 
+colnames(KP.df.out.C)<-c("d13C.pred", "Plot")
+colnames(RK.df.out.C)<-c("d13C.pred", "Plot")
+
+# new dataframe
+pred.dat.C<-rbind(KP.df.out.C, RK.df.out.C)
+pred.dat.C$Plot<-as.factor(pred.dat.C$Plot)
+pred.dat.C %>% 
+  group_by(Plot) %>%
+  summarise(no_rows = length(Plot))
+
+#man whitney for significance (not normal data)
+mwu(pred.dat.C, d13C.pred, Plot) # signif difference in predictions (p<0.001)
+
+# Density plot
+# plot.means
+predict.mean.C <- ddply(pred.dat.C, "Plot", summarise, grp.mean=mean(d13C.pred, na.rm=TRUE))
+predict.sd.C <- ddply(pred.dat.C, "Plot", summarise, sd=sd(d13C.pred, na.rm=TRUE))
+
+density.predict.C<-ggplot(pred.dat.C, aes(x=d13C.pred)) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+
+  xlab(expression(paste(delta^{13}, C["predicted"], sp="")))+
+  scale_color_manual(values=c("#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  geom_vline(data=predict.mean.C, aes(xintercept=grp.mean, color=Plot),
+             linetype="dashed", lwd=0.2) + BW.back2
+
+# get the legend, # create some space to the left of the legend
+density.legend <- get_legend(
+  density.predict.C + theme(legend.box.margin = margin(0, 0, 0, 12)) + 
+    theme(legend.key.size = unit(0.3, "cm")))
+
+gridExtra::grid.arrange(density.predict.N + theme(legend.position = "none"),
+                        density.predict.C + theme(legend.position = "none"),
+                        density.legend,
+                        ncol=3, nrow=1, widths = c(1,1,0.4))
+
+dev.copy(pdf, "figures/Fig S2ab.mod.pred.NC.pdf", width = 6, height = 2.5)
+dev.off()
+```
+
+### Soil isoscapes    
+  
+#### δ^15^N soil-isoscape
+  
+Subset data and only examine SOIL.     
+*Restored forest (KP)* and *Remnant Forest (RK)*
+```{r, KP soil krig, message=FALSE, results='hide'}
+###### KP site d15N
+
+## d15N SOIL plot
+krig.KP<- scape.data %>% filter(Plot=="KP") # just KP
+KP.soil<-  krig.KP[(krig.KP$Sample=="Soil"),] #just soil
+KP.soil$Sample<-droplevels(KP.soil$Sample)
+
+## Krig KP sites
+coordinates(KP.soil)<- ~x.meter + y.meter
+
+# Create a grid of "Pixels" using x as columns and y as rows
+# And the rows and columns of pixels:
+Columns=seq(from=-1, to=36, by=0.05)
+Rows=seq(from=-1, to=21, by=0.05)
+Grid.KP <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.KP) <- ~ x+y
+gridded(Grid.KP) <- TRUE # Plot the grid and points
+
+## expand binding box 
+#KP.soil@bbox # current data binding box
+x<-c(-1, 36)
+y<-c(-1, 21)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+KP.soil@bbox<-bbox(S) # expanded binding box for data
+Grid.KP@bbox<-bbox(S) # expand for plot corner
+
+# autokrige
+d15N.KP.soil <- autoKrige(d15N ~ 1, KP.soil, Grid.KP) # ordinary kriging
+plot(d15N.KP.soil, sp.layout = list(pts = list("sp.points", KP.soil)))
+#d15N.KP.soil$krige_output
+
+# make to dataframes for lm, combine
+KP.soil.pred.N <- d15N.KP.soil[1] %>% as.data.frame() # model predictions
+KP.soil.df.N <- KP.soil %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.KP.soil.df.N<- left_join(KP.soil.df.N, KP.soil.pred.N, by = c("x.meter"="krige_output.x"))#longest axis is x
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.KP.soil.df.N)
+summary(mod) #R squared = 0.015
+
+mean(pred.KP.soil.df.N$krige_output.var1.pred, na.rm=T) # mean of predictions 6.0 d15N
+mean(pred.KP.soil.df.N$krige_output.var1.stdev, na.rm=T) # 0.35
+
+# inspect model
+# plot(pred.KP.soil.df.N$krige_output.var1.pred ~ pred.KP.soil.df.N$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "RdBu")
+
+########### plot to diagnostic variogram
+#predicted krige
+plotd15N.krig.KP.soil<-spplot(d15N.KP.soil$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", KP.soil, pch=1, 
+                        col=c("black"), cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
+```
+
+RK soil isoscape
+```{r, RK soil krig, message=FALSE, results='hide'}
+###########################
+# RK Site Krig
+###########################
+
+## d15N SOIL plot
+krig.RK<- scape.data %>% filter(Plot=="RK") # just KP
+RK.soil<-  krig.RK[(krig.RK$Sample=="Soil"),] #just soil
+RK.soil$Sample<-droplevels(RK.soil$Sample)
+
+## Krig RK sites
+coordinates(RK.soil)<- ~x.meter + y.meter
+
+# Create a grid of "Pixels" using x as columns and y as rows
+# And the rows and columns of pixels:
+Columns=seq(from=-1, to=21, by=0.05)
+Rows=seq(from=-1, to=36, by=0.05)
+Grid.RK <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.RK) <- ~ x+y
+gridded(Grid.RK) <- TRUE # Plot the grid and points
+
+## expand binding box 
+#RK.soil@bbox # current data binding box
+x<-c(-1, 21)
+y<-c(-1, 36)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+RK.soil@bbox<-bbox(S) # expanded binding box for data
+Grid.RK@bbox<-bbox(S) # expand for plot corner
+
+# autokrige
+d15N.RK.soil <- autoKrige(d15N ~ 1, RK.soil, Grid.RK) # ordinary kriging
+plot(d15N.RK.soil, sp.layout = list(pts = list("sp.points", RK.soil)))
+#d15N.RK.soil$krige_output
+
+# make to dataframes for lm, combine
+RK.soil.pred.N <- d15N.RK.soil[1] %>% as.data.frame() # model predictions
+RK.soil.df.N <- RK.soil %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.RK.soil.df.N<- left_join(RK.soil.df.N, RK.soil.pred.N, by = c("x.meter"="krige_output.x"))#longest axis is x
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.RK.soil.df.N)
+summary(mod) #R squared = 0.01
+
+mean(pred.RK.soil.df.N$krige_output.var1.pred, na.rm=T) # mean of predictions 6.4 d15N
+mean(pred.RK.soil.df.N$krige_output.var1.stdev, na.rm=T) # 0.8
+
+# inspect model
+# plot(pred.RK.soil.df.N$krige_output.var1.pred ~ pred.RK.soil.df.N$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "RdBu")
+
+
+#predicted krige
+plotd15N.krig.RK.soil<-spplot(d15N.RK.soil$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", RK.soil, pch=1, 
+                        col=c("black"), cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
+```
+
+combine the soil isoscapes
+```{r, KPRK soil krig, message=FALSE, results='hide'}
+#####################
+grid.draw.ggmatrix <- function(x, recording = TRUE) {
+  print(x)
+}
+### combined KP-Rk krig d15N plot 
+par(mfrow=c(1,2))
+gridExtra::grid.arrange(plotd15N.krig.KP.soil, plotd15N.krig.RK.soil, ncol=2, nrow=1, widths = c(1.2,1))
+dev.copy(png, "figures/Fig3_ab.d15N.soil.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
+dev.off()
+
+```
+
+#### δ^13^C soil-isoscape
+soil isotopes, first the restored site then the remnant site  
+```{r, soil isotope krigs, message=FALSE, results='hide'}
+###### KP site d13C
+
+# autokrige
+d13C.KP.soil <- autoKrige(d13C ~ 1, KP.soil, Grid.KP) # ordinary kriging
+plot(d13C.KP.soil, sp.layout = list(pts = list("sp.points", KP.soil)))
+#d13C.KP.soil$krige_output
+
+# make to dataframes for lm, combine
+KP.soil.pred.C <- d13C.KP.soil[1] %>% as.data.frame() # model predictions
+KP.soil.df.C <- KP.soil %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.KP.soil.df.C<- left_join(KP.soil.df.C, KP.soil.pred.C, by = c("x.meter"="krige_output.x"))#longest axis is x
+mod <- lm(krige_output.var1.pred ~ d13C, data=pred.KP.soil.df.C)
+summary(mod) #R squared = 0.008
+
+mean(pred.KP.soil.df.C$krige_output.var1.pred, na.rm=T) # mean of predictions -24.4 d13C
+mean(pred.KP.soil.df.C$krige_output.var1.stdev, na.rm=T) # 0.6
+
+# inspect model
+# plot(pred.KP.soil.df.C$krige_output.var1.pred ~ pred.KP.soil.df.C$d13C, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "RdBu")
+
+# map in automap
+#automapPlot(d13C.KP.soil$krige_output, "var1.pred", sp.layout = list("sp.points", KP.soil, pch=16, col="gray20", cex=0.5), col.regions=my.palette)
+
+# map in ssplot
+# variance
+# spplot(d13C.KP.soil$krige_output,"var1.stdev")
+
+#predicted krige
+plotd13C.krig.KP.soil<-spplot(d13C.KP.soil$krige_output["var1.pred"], col.regions=col.scheme.C, 
+       sp.layout = list("sp.points", KP.soil, pch=1, 
+                        col=c("black"), cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{13}, C, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
+
+
+
+###########################
+# RK Site Krig
+###########################
+
+# autokrige
+d13C.RK.soil <- autoKrige(d13C ~ 1, RK.soil, Grid.RK) # ordinary kriging
+plot(d13C.RK.soil, sp.layout = list(pts = list("sp.points", RK.soil)))
+#d13C.RK.soil$krige_output
+
+# make to dataframes for lm, combine
+RK.soil.pred.C <- d13C.RK.soil[1] %>% as.data.frame() # model predictions
+RK.soil.df.C <- RK.soil %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.RK.soil.df.C<- left_join(RK.soil.df.C, RK.soil.pred.C, by = c("x.meter"="krige_output.x"))#longest axis is x
+mod <- lm(krige_output.var1.pred ~ d13C, data=pred.RK.soil.df.C)
+summary(mod) #R squared = 0.16
+
+mean(pred.RK.soil.df.C$krige_output.var1.pred, na.rm=T) # mean of predictions 4.4 d13C
+mean(pred.RK.soil.df.C$krige_output.var1.stdev, na.rm=T) # 2.1
+
+# inspect model
+# plot(pred.RK.soil.df.C$krige_output.var1.pred ~ pred.RK.soil.df.C$d13C, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "RdBu")
+
+# map in automap
+#automapPlot(d13C.RK.soil$krige_output, "var1.pred", sp.layout = list("sp.points", RK.soil, pch=16, col="gray20", cex=0.5), col.regions=my.palette)
+
+# map in ssplot
+# variance
+# spplot(d13C.RK.soil$krige_output,"var1.stdev")
+
+#predicted krige
+plotd13C.krig.RK.soil<-spplot(d13C.RK.soil$krige_output["var1.pred"], col.regions=col.scheme.C, 
+       sp.layout = list("sp.points", RK.soil, pch=1, 
+                        col=c("black"), cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{13}, C, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
+
+
+#####################
+grid.draw.ggmatrix <- function(x, recording = TRUE) {
+  print(x)
+}
+### combined KP-Rk krig d13C plot 
+par(mfrow=c(1,2))
+gridExtra::grid.arrange(plotd13C.krig.KP.soil, plotd13C.krig.RK.soil, ncol=2, nrow=1, widths = c(1.2,1))
+dev.copy(png, "figures/Fig_cd.d13C.isoscape.soils.png", width = 8, height = 4, units = 'in', res = 300)
+dev.off()
+
+```
+  
+Density plots for soil isoscapes  
+```{r, soil density plots, fig.show='hold', out.width='50%', message=FALSE, results='hide'}
+# make density plots using predictions
+# combine the predictions for each plot
+
+
+############## Nitrogen plot
+KP.df.soil.N<-as.data.frame(pred.KP.soil.df.N$krige_output.var1.pred); KP.df.soil.N$Plot<-"KP"
+RK.df.soil.N<-as.data.frame(pred.RK.soil.df.N$krige_output.var1.pred); RK.df.soil.N$Plot<-"RK" 
+colnames(KP.df.soil.N)<-c("d15N.pred", "Plot")
+colnames(RK.df.soil.N)<-c("d15N.pred", "Plot")
+
+# new dataframe
+pred.soil.N<-rbind(KP.df.soil.N, RK.df.soil.N)
+pred.soil.N$Plot<-as.factor(pred.soil.N$Plot)
+pred.soil.N %>% 
+  group_by(Plot) %>%
+  summarise(no_rows = length(Plot))
+
+#man whitney for significance (not normal data)
+mwu(pred.soil.N, d15N.pred, Plot) # signif difference in predictions (p<0.001)
+
+# Density plot
+# plot.means
+predict.mean.N <- ddply(pred.soil.N, "Plot", summarise, grp.mean=mean(d15N.pred, na.rm=TRUE))
+predict.sd.N <- ddply(pred.soil.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
+
+density.predict.Nsoil<-ggplot(pred.soil.N, aes(x=d15N.pred)) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+ ylim(0,1.2) +
+  xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+  scale_color_manual(values=c("#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
+             linetype="dashed", lwd=0.2) + BW.back2
+
+
+############## Carbon
+KP.df.soil.C<-as.data.frame(pred.KP.soil.df.C$krige_output.var1.pred); KP.df.soil.C$Plot<-"KP"
+RK.df.soil.C<-as.data.frame(pred.RK.soil.df.C$krige_output.var1.pred); RK.df.soil.C$Plot<-"RK" 
+colnames(KP.df.soil.C)<-c("d13C.pred", "Plot")
+colnames(RK.df.soil.C)<-c("d13C.pred", "Plot")
+
+# new dataframe
+pred.soil.C<-rbind(KP.df.soil.C, RK.df.soil.C)
+pred.soil.C$Plot<-as.factor(pred.soil.C$Plot)
+pred.soil.C %>% 
+  group_by(Plot) %>%
+  summarise(no_rows = length(Plot))
+
+#man whitney for significance (not normal data)
+mwu(pred.soil.C, d13C.pred, Plot) # signif difference in predictions (p<0.001)
+
+# Density plot
+# plot.means
+predict.mean.C <- ddply(pred.soil.C, "Plot", summarise, grp.mean=mean(d13C.pred, na.rm=TRUE))
+
+density.predict.Csoil<-ggplot(pred.soil.C, aes(x=d13C.pred)) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+ ylim(0,0.8) +
+  xlab(expression(paste(delta^{13}, C["predicted"], sp="")))+
+  scale_color_manual(values=c("#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  geom_vline(data=predict.mean.C, aes(xintercept=grp.mean, color=Plot),
+             linetype="dashed", lwd=0.2) + BW.back2
+
+# get the legend, # create some space to the left of the legend
+density.legend <- get_legend(
+  density.predict.Nsoil + theme(legend.box.margin = margin(0, 0, 0, 12)) + 
+    theme(legend.key.size = unit(0.3, "cm")))
+
+gridExtra::grid.arrange(density.predict.Nsoil + theme(legend.position = "none"),
+                        density.predict.Csoil + theme(legend.position = "none"),
+                        density.legend,
+                        ncol=3, nrow=1, widths = c(1,1,0.3))
+dev.copy(pdf, "figures/Fig S4_b.soil.mod.pred.pdf", width = 5, height = 2.5)
+dev.off()
+
+```
+
+### Foliar Isoscapes    
+  
+#### δ^15^N foliar-isoscape
+  
+Subset data and only examine plants.     
+- *Restored forest (KP)* and *Remnant Forest (RK)*
+
+Plant-isoscape: Restored forest and remnant forest (Plant isoscape: d15N, Figure S5).  
+Koa Plantation:
+```{r, KP plants krig, message=FALSE, results='hide'}
+#### d15N Plants isoscape
+
+## d15N plants plot
+krig.KP<- scape.data %>% filter(Plot=="KP") # just KP
+KP.plants<-  krig.KP[!(krig.KP$Sample=="Soil"),] #just plants, remove the soil
+KP.plants$Sample<-droplevels(KP.plants$Sample)
+
+## Krig KP sites
+coordinates(KP.plants)<- ~x.meter + y.meter
+
+# Create a grid of "Pixels" using x as columns and y as rows
+# And the rows and columns of pixels:
+Columns=seq(from=-1, to=36, by=0.05)
+Rows=seq(from=-1, to=21, by=0.05)
+Grid.KP <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.KP) <- ~ x+y
+gridded(Grid.KP) <- TRUE # Plot the grid and points
+
+## expand binding box 
+#KP.plants@bbox # current data binding box
+x<-c(-1, 36)
+y<-c(-1, 21)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+KP.plants@bbox<-bbox(S) # expanded binding box for data
+Grid.KP@bbox<-bbox(S) # expand for plot corner
+
+# autokrige
+d15N.KP.plants <- autoKrige(d15N ~ 1, KP.plants, Grid.KP, fix.value=c(0.2, 3, 0.6)) # ordinary kriging
+
+############## diagnostics
+plot(d15N.KP.plants, sp.layout = list(pts = list("sp.points", KP.plants)))
+#d15N.KP.plants$krige_output
+
+# make to dataframes for lm, combine
+KP.plants.pred.N <- d15N.KP.plants[1] %>% as.data.frame() # model predictions
+KP.plants.df.N <- KP.plants %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.KP.plants.df.N<- left_join(KP.plants.df.N, KP.plants.pred.N, by = c("x.meter"="krige_output.x"))#longest axis is x
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.KP.plants.df.N)
+summary(mod) #R squared = 0.19
+
+mean(pred.KP.plants.df.N$krige_output.var1.pred, na.rm=T) # mean of predictions 1.6 d15N
+mean(pred.KP.plants.df.N$krige_output.var1.stdev, na.rm=T) # 0.7
+
+# inspect model
+# plot(pred.KP.plants.df.N$krige_output.var1.pred ~ pred.KP.plants.df.N$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "RdBu")
+
+#predicted krige
+plotd15N.krig.KP.plants<-spplot(d15N.KP.plants$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", KP.plants, pch=c(16,17)[KP.plants$Sample],
+                        col=c("black"), cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
+
+#plotd15N.krig.KP.plants
+```
+  
+Remnant Koa forest
+```{r, RK plants krig, message=FALSE, results='hide'}
+###########################
+# RK Site Krig
+###########################
+
+## d15N plants plot
+krig.RK<- scape.data %>% filter(Plot=="RK") # just KP
+RK.plants<-  krig.RK[!(krig.RK$Sample=="Soil"),] #just plants, remove soil
+RK.plants$Sample<-droplevels(RK.plants$Sample)
+
+## Krig RK sites
+coordinates(RK.plants)<- ~x.meter + y.meter
+
+# Create a grid of "Pixels" using x as columns and y as rows
+# And the rows and columns of pixels:
+Columns=seq(from=-1, to=21, by=0.05)
+Rows=seq(from=-1, to=36, by=0.05)
+Grid.RK <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.RK) <- ~ x+y
+gridded(Grid.RK) <- TRUE # Plot the grid and points
+
+## expand binding box 
+#RK.plants@bbox # current data binding box
+x<-c(-1, 21)
+y<-c(-1, 36)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+RK.plants@bbox<-bbox(S) # expanded binding box for data
+Grid.RK@bbox<-bbox(S) # expand for plot corner
+
+# autokrige
+d15N.RK.plants <- autoKrige(d15N ~ 1, RK.plants, Grid.RK) # ordinary kriging
+plot(d15N.RK.plants, sp.layout = list(pts = list("sp.points", RK.plants)))
+#d15N.RK.plants$krige_output
+
+# make to dataframes for lm, combine
+RK.plants.pred.N <- d15N.RK.plants[1] %>% as.data.frame() # model predictions
+RK.plants.df.N <- RK.plants %>% as.data.frame() # dataframe
+
+# make dataframe with data and predictions (krig) to assess fit
+pred.RK.plants.df.N<- left_join(RK.plants.df.N, RK.plants.pred.N, by = c("x.meter"="krige_output.x"))#longest axis is x
+mod <- lm(krige_output.var1.pred ~ d15N, data=pred.RK.plants.df.N)
+summary(mod) #R squared = 0.15
+
+mean(pred.RK.plants.df.N$krige_output.var1.pred, na.rm=T) # mean of predictions 2.8 d15N
+mean(pred.RK.plants.df.N$krige_output.var1.stdev, na.rm=T) # 0.5
+
+# inspect model
+# plot(pred.RK.plants.df.N$krige_output.var1.pred ~ pred.RK.plants.df.N$d15N, xlab = "Observed", ylab = "Predicted", cex=0.2); abline(0,1, lty=2); abline(mod, col = "blue")
+
+# Adding the sp.layout parameter shows the locations of the measurements
+my.palette <- brewer.pal(n = 9, name = "RdBu")
+
+
+#predicted krige
+plotd15N.krig.RK.plants<-spplot(d15N.RK.plants$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", RK.plants, pch=c(16,17)[RK.plants$Sample],
+                        col=c("black"), cex=0.5, alpha=0.5),
+       main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
+#plotd15N.krig.RK.plants
+```
+  
+combine the two plant-isoscapes
+```{r, KPRK plants krig, message=FALSE, results='hide'}
+#####################
+grid.draw.ggmatrix <- function(x, recording = TRUE) {
+  print(x)
+}
+### combined KP-Rk krig d15N plot 
+par(mfrow=c(1,2))
+gridExtra::grid.arrange(plotd15N.krig.KP.plants, plotd15N.krig.RK.plants, ncol=2, nrow=1, widths = c(1.2,1))
+dev.copy(png, "figures/FigS5_a.d15N.isoscape.plants.png", width = 8, height = 4, units = 'in', res = 300)
+dev.off()
+
+```
+  
+Density plots showing the distribution of all extrapolated points.
+Plant-isoscape: density plot for the d15N-predicted values for the plant-only (foliar) isoscape
+```{r, plant density plots, fig.show='hold', out.width='50%', message=FALSE, results='hide'}
+# make density plots using predictions
+# combine the predictions for each plot
+
+############## Nitrogen plot
+KP.df.plants.N<-as.data.frame(pred.KP.plants.df.N$krige_output.var1.pred); KP.df.plants.N$Plot<-"KP"
+RK.df.plants.N<-as.data.frame(pred.RK.plants.df.N$krige_output.var1.pred); RK.df.plants.N$Plot<-"RK" 
+colnames(KP.df.plants.N)<-c("d15N.pred", "Plot")
+colnames(RK.df.plants.N)<-c("d15N.pred", "Plot")
+
+# new dataframe
+pred.plants.N<-rbind(KP.df.plants.N, RK.df.plants.N)
+pred.plants.N$Plot<-as.factor(pred.plants.N$Plot)
+pred.plants.N %>% 
+  group_by(Plot) %>%
+  summarise(no_rows = length(Plot))
+
+#man whitney for significance (not normal data)
+mwu(pred.plants.N, d15N.pred, Plot) # signif difference in predictions (p<0.001)
+
+### Density plot
+
+# plot.means
+predict.mean.N <- ddply(pred.plants.N, "Plot", summarise, grp.mean=mean(d15N.pred, na.rm=TRUE))
+predict.SD.N <- ddply(pred.plants.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
+
+density.predict.Nplants<-ggplot(pred.plants.N, aes(x=d15N.pred)) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+ ylim(0,2.5) +
+  xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+  scale_color_manual(values=c("#E69F00", "#56B4E9")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
+             linetype="dashed", lwd=0.2) + BW.back2
+
+gridExtra::grid.arrange(density.predict.Nplants + theme(legend.position = "none"),
+                          density.legend, ncol=2, nrow=1, widths = c(1,0.2))
+dev.copy(pdf, "figures/Fig S6_plant.mod.pred.pdf", width = 5, height = 2.5)
+dev.off()
+
+```
+
