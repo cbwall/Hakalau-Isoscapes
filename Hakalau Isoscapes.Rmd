@@ -26,7 +26,7 @@ pacman::p_load("RgoogleMaps", "SDMTools", "rgdal", "ggmap", "gridExtra", "automa
 
 ## Background  
 **Hakalau National Forest Wildlife Refuge Isoscapes**  
-Data collected 20-21 August 2019 in Hakalau Forest, Hawai'i Island. plants and plant samples collected from  afforested/restored plots after a century of deforestation from cattle grazing (*KP sites*) and remnant mixed koa-ohia forests (*RK sites*). Target engineers of forest habitats are *Acacia koa* (Hawaiian name: *Koa*), an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria. Understory species include *Rubus argutus* -- an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiiensis* (common name: 'Ākala); both are members of the Roseaceae family. Noteably, *R. argutus* was found more in the remnant plot (i.e., RK) and the indigenous *R. hawaiiensis* was common in the restored plot (i.e, KP). 
+Data collected 20-21 August 2019 in Hakalau Forest, Hawai'i Island. plants and plant samples collected from  afforested/restored plots after a century of deforestation from cattle grazing (now, koa plantations or *KP sites*) and remnant mixed koa-ohia forests (*RK sites*). Target engineers of forest habitats are *Acacia koa* (Hawaiian name: *Koa*), an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria. Understory species include *Rubus argutus* -- an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiiensis* (common name: 'Ākala); both are members of the Roseaceae family. Noteably, *R. argutus* was found more in the remnant plot (i.e., RK) and the indigenous *R. hawaiiensis* was common in the restored plot (i.e, KP). 
 
 Plants samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a δ^13^C and δ^15^N stable isotope landscape, hereafter 'isoscape'. Koa and *Rubus* spp. were collected within each 4 x 5m subplot.  
 
@@ -157,7 +157,7 @@ RK.map<-ggmap(mapRK, group=type)+
 
 
 site.plots<-plot_grid(hi_map_for_man, Hakalau.site, KP.map, RK.map, 
-          labels=c('a', 'b', 'c', 'd'), label_size=8, hjust=-1, vjust= 2, ncol=2, nrow=2)
+          labels=c('A', 'B', 'C', 'D'), label_size=8, hjust=-1, vjust= 2, ncol=2, nrow=2)
 site.plots
 
 ### export it
@@ -253,7 +253,7 @@ panel.background = element_blank(), axis.line = element_line(colour = "black", s
 
 Rub.Koa.d15N.plot<-ggplot(data=Ndfa, aes(x=d15N.Koa, y=d15N.Rub, color=Plot))+
   geom_point(aes(color=Plot), alpha=.8) + 
-  scale_color_manual(values=c('gray30', "gray70")) +
+  scale_color_manual(values=c("gray60", "gray85")) +
   coord_equal() + theme_bw() +
   xlab(expression(paste(italic("Acacia koa "), delta^{15}, N, " (\u2030)"), sep=""))+
   ylab(expression(paste(italic("Rubus"), " spp. ", delta^{15}, N, " (\u2030)"), sep="")) +
@@ -413,7 +413,7 @@ Canopy.plot<-ggplot(data=mean.eco, aes(x=Plot, y=Can))+
 
 #  figures together
 plot_grid(DBH.plot, Canopy.plot,
-     labels=c('a', 'b'), label_size=8, hjust=-1, vjust= 3, ncol=2, nrow=1)
+     labels=c('A', 'B'), label_size=8, hjust=-1, vjust= 3, ncol=2, nrow=1)
 dev.copy(pdf, "figures/Supp.Fig1.DBHCanopy.pdf", width=4, height=3.5, encod="MacRoman")
 dev.off()
 
@@ -603,8 +603,8 @@ pd <- position_dodge(0.7) #offset for error bars
 d13C.plot<-ggplot(data=mean.data, aes(x=Sample, y=d13C.mean, fill=Plot, group=Plot))+
   geom_bar(stat="identity", position = pd, width=0.7)+
   geom_errorbar(aes(ymin=d13C.mean-d13C.SE, ymax=d13C.mean+d13C.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c('gray65', "gray89")) +
-  xlab("Sample Type") + 
+  scale_fill_manual(values=c("gray60", "gray85")) +
+  scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
   annotate(geom="text", x=1, y=-27.5, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=2, y=-33, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=3, y=-33, label=expression(paste(bold("*"))), size=4) +
@@ -615,8 +615,8 @@ d13C.plot<-ggplot(data=mean.data, aes(x=Sample, y=d13C.mean, fill=Plot, group=Pl
 d15N.plot<-ggplot(data=mean.data, aes(x=Sample, y=d15N.mean, fill=Plot, group=Plot))+
   geom_bar(stat="identity", position = pd, width=0.7)+ ylim(c(0,8)) +
   geom_errorbar(aes(ymin=d15N.mean-d15N.SE, ymax=d15N.mean+d15N.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c('gray65', "gray89")) +
-  xlab("Sample Type") + 
+  scale_fill_manual(values=c("gray60", "gray85")) +
+  scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
   theme(text = element_text(size=8)) +
   annotate(geom="text", x=2, y=2.8, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=3, y=3.3, label=expression(paste(bold("*"))), size=4) +
@@ -626,8 +626,8 @@ d15N.plot<-ggplot(data=mean.data, aes(x=Sample, y=d15N.mean, fill=Plot, group=Pl
 TC.plot<-ggplot(data=mean.data, aes(x=Sample, y=TC.mean, fill=Plot, group=Plot))+
   geom_bar(stat="identity", position = pd, width=0.7)+ ylim(c(0, 60)) +
   geom_errorbar(aes(ymin=TC.mean-TC.SE, ymax=TC.mean+TC.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c('gray65', "gray89")) +
-  xlab("Sample Type") + 
+  scale_fill_manual(values=c("gray60", "gray85")) +
+  scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
   theme(text = element_text(size=8)) +
   annotate(geom="text", x=1, y=25, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=3, y=42, label=expression(paste(bold("*"))), size=4) +
@@ -637,14 +637,16 @@ TC.plot<-ggplot(data=mean.data, aes(x=Sample, y=TC.mean, fill=Plot, group=Plot))
 TN.plot<-ggplot(data=mean.data, aes(x=Sample, y=TN.mean, fill=Plot, group=Plot))+
   geom_bar(stat="identity", position = pd, width=0.7)+
   geom_errorbar(aes(ymin=TN.mean-TN.SE, ymax=TN.mean+TN.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c('gray65', "gray89")) +
-  xlab("Sample Type") + 
+  scale_fill_manual(values=c("gray60", "gray85")) +
+  scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
   theme(text = element_text(size=8)) +
   ylab("Total Nitrogen (mmol/gdw)") + BW.back2
 
 # get the legend, # create some space to the left of the legend
 bar.legend <- get_legend(
-  TN.plot + theme(legend.box.margin = margin(0, 0, 0, 12)) + 
+  TN.plot + 
+    theme(legend.box.margin = margin(0, 0, 0, 12)) +
+    theme(legend.title=element_blank())+ # no need for a title above legend
     theme(legend.key.size = unit(0.3, "cm")))
 
 #  figures together
@@ -652,11 +654,11 @@ bar.plots<-plot_grid(d15N.plot + theme(legend.position = "none"),
                      d13C.plot + theme(legend.position = "none"),
                      TN.plot + theme(legend.position = "none"),
                      TC.plot + theme(legend.position = "none"), 
-                     nrow=1, ncol=4, labels=c('a', 'b', 'c', 'd'), 
+                     nrow=1, ncol=4, labels=c('A', 'B', 'C', 'D'), 
           label_size=8, hjust=-1, vjust= 3)
 
 plot_grid(bar.plots, bar.legend, rel_widths = c(8, 1)) # legend  1/8 size as first obj.
-dev.copy(pdf, "figures/Fig 2.mean.data.sample.pdf", width=7, height=3, encod="MacRoman")
+dev.copy(pdf, "figures/Fig 2.mean.data.sample.pdf", width=8.2, height=3, encod="MacRoman")
 dev.off()
 ```
   
@@ -991,7 +993,7 @@ dev.off()
 
 #### Density plots: pooled samples  
 Density plots using predictions of N and C values for all sample types: the soil, koa, and *Rubus*. 
-```{r, density plots fig S2, fig.show='hold', out.height='70%', message=FALSE, results='hide'}
+```{r, density plots fig S2, fig.show='hold', out.height='50%', message=FALSE, results='hide'}
 
 ###################
 # make density plots using predictions
@@ -1021,10 +1023,12 @@ predict.SD.N <- ddply(pred.dat.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE
 density.predict.N<-ggplot(pred.dat.N, aes(x=d15N.pred)) +
   geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+
   xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+  ylab("density")+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2
+             linetype="dashed", lwd=0.2) + BW.back2 +
+  annotate(geom="text", x=0, y=3.3, label=expression(paste(bold("A"))), size=3) 
 
 
 ######## Carbon
@@ -1056,15 +1060,19 @@ predict.sd.C <- ddply(pred.dat.C, "Plot", summarise, sd=sd(d13C.pred, na.rm=TRUE
 density.predict.C<-ggplot(pred.dat.C, aes(x=d13C.pred)) +
   geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+
   xlab(expression(paste(delta^{13}, C["predicted"], sp="")))+
+  ylab("")+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.C, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2
+             linetype="dashed", lwd=0.2) + BW.back2 +
+  annotate(geom="text", x=-32, y=1.7, label=expression(paste(bold("B"))), size=3)
 
 # get the legend, # create some space to the left of the legend
 density.legend <- get_legend(
-  density.predict.C + theme(legend.box.margin = margin(0, 0, 0, 12)) + 
-    theme(legend.key.size = unit(0.3, "cm")))
+  density.predict.C + #plot this one
+    theme(legend.title=element_blank())+ # no need for a title above legend
+    theme(legend.box.margin = margin(0, 0, 0, 12)) + #box margin
+    theme(legend.key.size = unit(0.3, "cm"))) # legend size
 
 gridExtra::grid.arrange(density.predict.N + theme(legend.position = "none"),
                         density.predict.C + theme(legend.position = "none"),
@@ -1344,10 +1352,12 @@ predict.sd.N <- ddply(pred.soil.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRU
 density.predict.Nsoil<-ggplot(pred.soil.N, aes(x=d15N.pred)) +
   geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+ ylim(0,1.2) +
   xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+  ylab("density")+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2
+             linetype="dashed", lwd=0.2) + BW.back2 +
+  annotate(geom="text", x=2, y=1.2, label=expression(paste(bold("A"))), size=3)
 
 
 ############## Carbon
@@ -1373,21 +1383,18 @@ predict.mean.C <- ddply(pred.soil.C, "Plot", summarise, grp.mean=mean(d13C.pred,
 density.predict.Csoil<-ggplot(pred.soil.C, aes(x=d13C.pred)) +
   geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+ ylim(0,0.8) +
   xlab(expression(paste(delta^{13}, C["predicted"], sp="")))+
+  ylab("")+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.C, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2
-
-# get the legend, # create some space to the left of the legend
-density.legend <- get_legend(
-  density.predict.Nsoil + theme(legend.box.margin = margin(0, 0, 0, 12)) + 
-    theme(legend.key.size = unit(0.3, "cm")))
+             linetype="dashed", lwd=0.2) + BW.back2 +
+  annotate(geom="text", x=-28, y=0.8, label=expression(paste(bold("B"))), size=3)
 
 gridExtra::grid.arrange(density.predict.Nsoil + theme(legend.position = "none"),
                         density.predict.Csoil + theme(legend.position = "none"),
                         density.legend,
                         ncol=3, nrow=1, widths = c(1,1,0.3))
-dev.copy(pdf, "figures/Fig S4_b.soil.mod.pred.pdf", width = 5, height = 2.5)
+dev.copy(pdf, "figures/Fig S4_b.soil.mod.pred.pdf", width = 6, height = 2.5)
 dev.off()
 
 ```
@@ -1580,7 +1587,7 @@ density.predict.Nplants<-ggplot(pred.plants.N, aes(x=d15N.pred)) +
 
 gridExtra::grid.arrange(density.predict.Nplants + theme(legend.position = "none"),
                           density.legend, ncol=2, nrow=1, widths = c(1,0.2))
-dev.copy(pdf, "figures/Fig S6_plant.mod.pred.pdf", width = 5, height = 2.5)
+dev.copy(pdf, "figures/Fig S6_plant.mod.pred.pdf", width = 4, height = 2.5)
 dev.off()
 
 ```
