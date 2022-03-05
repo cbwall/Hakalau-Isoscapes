@@ -240,12 +240,27 @@ Ndfa$d15N.Koa<-Ndfa$mean.d15N.Ndfa
 #################### relationship between koa and rubus d15N?
 # Yes, but a bit stronger in the RK site
 mod.KP<-lm(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="KP"),]$d15N.Koa); anova(mod.KP)
+summary(mod.KP)
 int.rubKP<-coef(summary(mod.KP))[1] #intercept
 slop.rubKP<-coef(summary(mod.KP))[2] #slope
                                   
 mod.RK<-lm(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="RK"),]$d15N.Koa); anova(mod.RK)
+summary(mod.RK)
 int.RKoa<-coef(summary(mod.RK))[1] #intercept
 slop.RKoa<-coef(summary(mod.RK))[2] #slope
+
+## ranges
+# RK Koa and Rubus
+(max(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Koa)-min(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Koa))
+(max(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Rub)-min(Ndfa[(Ndfa$Plot=="RK"),]$d15N.Rub))
+
+# KP Koa and Rubus
+(max(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Koa)-min(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Koa))
+(max(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Rub)-min(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Rub))
+
+
+
+
 
 #### plot
 BW.back<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
