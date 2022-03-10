@@ -161,7 +161,7 @@ site.plots<-plot_grid(hi_map_for_man, Hakalau.site, KP.map, RK.map,
 site.plots
 
 ### export it
-pdf(file= "figures/Fig1.sitemaps.pdf", height=5, width=8)
+pdf(file= "figures/Fig 1.sitemaps.pdf", height=5, width=8)
 site.plots
 dev.off()
 
@@ -431,7 +431,7 @@ Canopy.plot<-ggplot(data=mean.eco, aes(x=Plot, y=Can))+
 #  figures together
 plot_grid(DBH.plot, Canopy.plot,
      labels=c('A', 'B'), label_size=8, hjust=-1, vjust= 3, ncol=2, nrow=1)
-dev.copy(pdf, "figures/Supp.Fig1.DBHCanopy.pdf", width=4, height=3.5, encod="MacRoman")
+dev.copy(pdf, "figures/FigS1.DBHCanopy.pdf", width=4, height=3.5, encod="MacRoman")
 dev.off()
 
 ```
@@ -878,7 +878,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 ### combined KP-Rk krig d15N plot 
 par(mfrow=c(1,2))
 gridExtra::grid.arrange(plotd15N.krig.KP, plotd15N.krig.RK, ncol=2, nrow=1, widths = c(1.2,1))
-dev.copy(png, "figures/Fig4_ab.d15N.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
+dev.copy(png, "figures/FigS2_ab.d15N.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
 
@@ -1005,7 +1005,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 ### combined KP-Rk krig d13C plot 
 par(mfrow=c(1,2))
 gridExtra::grid.arrange(plotd13C.krig.KP,plotd13C.krig.RK, ncol=2, nrow=1, widths = c(1.2,1))
-dev.copy(png, "figures/Fig4_cd.d13C.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
+dev.copy(png, "figures/FigS2_cd.d13C.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
 
@@ -1241,7 +1241,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 ### combined KP-Rk krig d15N plot 
 par(mfrow=c(1,2))
 gridExtra::grid.arrange(plotd15N.krig.KP.soil, plotd15N.krig.RK.soil, ncol=2, nrow=1, widths = c(1.2,1))
-dev.copy(png, "figures/Fig3_ab.d15N.soil.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
+dev.copy(png, "figures/Fig5_ab.d15N.soil.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
 ```
@@ -1337,7 +1337,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 ### combined KP-Rk krig d13C plot 
 par(mfrow=c(1,2))
 gridExtra::grid.arrange(plotd13C.krig.KP.soil, plotd13C.krig.RK.soil, ncol=2, nrow=1, widths = c(1.2,1))
-dev.copy(png, "figures/Fig_cd.d13C.isoscape.soils.png", width = 8, height = 4, units = 'in', res = 300)
+dev.copy(png, "figures/Fig5_cd.d13C.isoscape.soils.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
 ```
@@ -1565,7 +1565,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 ### combined KP-Rk krig d15N plot 
 par(mfrow=c(1,2))
 gridExtra::grid.arrange(plotd15N.krig.KP.plants, plotd15N.krig.RK.plants, ncol=2, nrow=1, widths = c(1.2,1))
-dev.copy(png, "figures/FigS5_a.d15N.isoscape.plants.png", width = 8, height = 4, units = 'in', res = 300)
+dev.copy(png, "figures/Fig 6_ab.d15N.isoscape.plants.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
 ```
@@ -1637,7 +1637,7 @@ plot_grid((density.predict.N.pooled  + ylab("density") +
           
           labels=c('A', 'B', 'C', 'D', 'E'), label_size=8, hjust=-1, vjust= 2, ncol=2, nrow=3)
 
-dev.copy(pdf, "figures/Fig Sx__density plots.pdf", width = 3, height = 5)
+dev.copy(pdf, "figures/Fig 4_ad_density plots.pdf", width = 3, height = 5)
 dev.off()
 ```
 
