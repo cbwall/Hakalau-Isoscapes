@@ -259,31 +259,33 @@ slop.RKoa<-coef(summary(mod.RK))[2] #slope
 (max(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Rub)-min(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Rub))
 
 
-
-
-
 #### plot
 BW.back<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black", size=0.2))
 
 Rub.Koa.d15N.plot<-ggplot(data=Ndfa, aes(x=d15N.Koa, y=d15N.Rub, color=Plot))+
   geom_point(aes(color=Plot), alpha=.8) + 
-  scale_color_manual(values=c("gray60", "gray85")) +
+  scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   coord_equal() + theme_bw() +
   xlab(expression(paste(italic("Acacia koa "), delta^{15}, N, " (\u2030)"), sep=""))+
   ylab(expression(paste(italic("Rubus"), " spp. ", delta^{15}, N, " (\u2030)"), sep="")) +
-  guides(colour=guide_legend(override.aes = list(stroke=1, fill=NA, alpha=1))) +
+  guides(colour=guide_legend(override.aes = list(stroke=1, fill="NA", alpha=1))) +
   geom_smooth(method = "lm", alpha = .15, size=0.6) +
   theme(legend.title = element_blank(),
         axis.text=element_text(size=6),
-        axis.title=element_text(size=10))+
-  annotate(geom="text", x=2.7, y=0.8, label=expression(paste("KP ", italic("p"), "=0.056")), size=2) +
-  annotate(geom="text", x=2.7, y=0.6, label=expression(paste("RK ", italic("p="), bold("0.006"))), size=2) +
+        axis.title=element_text(size=10),
+        legend.position = c(0.85, 0.94), legend.key.size = unit(0.4, "cm"),
+        legend.text = element_text(size = 8), legend.background=element_blank()) +
+  annotate(geom="text", x=2.45, y=0.8, 
+           label=expression(paste("KP:  R"^{2},"= 0.27, ",italic("p"), "=0.056")), size=2) +
+  annotate(geom="text", x=2.45, y=0.6, 
+           label=expression(paste("RK:  R"^{2},"= 0.26, ",italic("p="), bold("0.006"))), size=2) +
   BW.back
 
 Rub.Koa.d15N.plot
 dev.copy(pdf, "figures/Fig 3.Koa.Rub.regr.pdf", width=4, height=4, encod="MacRoman")
 dev.off()
+
 ```
   
 
@@ -616,9 +618,9 @@ pd <- position_dodge(0.7) #offset for error bars
 
 ### d13C
 d13C.plot<-ggplot(data=mean.data, aes(x=Sample, y=d13C.mean, fill=Plot, group=Plot))+
-  geom_bar(stat="identity", position = pd, width=0.7)+
+  geom_bar(stat="identity", position = pd, width=0.7, alpha=0.5)+
   geom_errorbar(aes(ymin=d13C.mean-d13C.SE, ymax=d13C.mean+d13C.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c("gray60", "gray85")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
   annotate(geom="text", x=1, y=-27.5, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=2, y=-33, label=expression(paste(bold("*"))), size=4) +
@@ -628,9 +630,9 @@ d13C.plot<-ggplot(data=mean.data, aes(x=Sample, y=d13C.mean, fill=Plot, group=Pl
 
 ### d15N
 d15N.plot<-ggplot(data=mean.data, aes(x=Sample, y=d15N.mean, fill=Plot, group=Plot))+
-  geom_bar(stat="identity", position = pd, width=0.7)+ ylim(c(0,8)) +
+  geom_bar(stat="identity", position = pd, width=0.7, alpha=0.5) + ylim(c(0,8)) +
   geom_errorbar(aes(ymin=d15N.mean-d15N.SE, ymax=d15N.mean+d15N.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c("gray60", "gray85")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
   theme(text = element_text(size=8)) +
   annotate(geom="text", x=2, y=2.8, label=expression(paste(bold("*"))), size=4) +
@@ -639,20 +641,22 @@ d15N.plot<-ggplot(data=mean.data, aes(x=Sample, y=d15N.mean, fill=Plot, group=Pl
 
 ### total Carbon
 TC.plot<-ggplot(data=mean.data, aes(x=Sample, y=TC.mean, fill=Plot, group=Plot))+
-  geom_bar(stat="identity", position = pd, width=0.7)+ ylim(c(0, 60)) +
+  geom_bar(stat="identity", position = pd, width=0.7, alpha=0.5)+ ylim(c(0, 60)) +
   geom_errorbar(aes(ymin=TC.mean-TC.SE, ymax=TC.mean+TC.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c("gray60", "gray85")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
-  theme(text = element_text(size=8)) +
+  theme(text = element_text(size=8),
+        legend.position = c(0.9, 0.9), legend.key.size = unit(0.3, "cm"),
+        legend.title = element_blank()) +
   annotate(geom="text", x=1, y=25, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=3, y=42, label=expression(paste(bold("*"))), size=4) +
-  ylab("Total Carbon (mmol/gdw)") + BW.back2
+  ylab("Total Carbon (mmol/gdw)") +  BW.back2 
 
 ### total Nitrogen
 TN.plot<-ggplot(data=mean.data, aes(x=Sample, y=TN.mean, fill=Plot, group=Plot))+
-  geom_bar(stat="identity", position = pd, width=0.7)+
+  geom_bar(stat="identity", position = pd, width=0.7, alpha=0.5)+
   geom_errorbar(aes(ymin=TN.mean-TN.SE, ymax=TN.mean+TN.SE), size=.3, width=0, position=pd) +
-  scale_fill_manual(values=c("gray60", "gray85")) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
   theme(text = element_text(size=8)) +
   ylab("Total Nitrogen (mmol/gdw)") + BW.back2
@@ -668,12 +672,13 @@ bar.legend <- get_legend(
 bar.plots<-plot_grid(d15N.plot + theme(legend.position = "none"), 
                      d13C.plot + theme(legend.position = "none"),
                      TN.plot + theme(legend.position = "none"),
-                     TC.plot + theme(legend.position = "none"), 
+                     TC.plot,
                      nrow=1, ncol=4, labels=c('A', 'B', 'C', 'D'), 
           label_size=8, hjust=-1, vjust= 3)
 
-plot_grid(bar.plots, bar.legend, rel_widths = c(8, 1)) # legend  1/8 size as first obj.
-dev.copy(pdf, "figures/Fig 2.mean.data.sample.pdf", width=8.2, height=3, encod="MacRoman")
+#plot_grid(bar.plots, bar.legend, rel_widths = c(8, 1)) # legend  1/8 size as first obj.
+bar.plots
+dev.copy(pdf, "figures/Fig 2.mean.data.sample.pdf", width=7.5, height=3, encod="MacRoman")
 dev.off()
 ```
   
@@ -1035,15 +1040,17 @@ predict.mean.N <- ddply(pred.dat.N, "Plot", summarise, grp.mean=mean(d15N.pred, 
 predict.SD.N <- ddply(pred.dat.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
 
 
-density.predict.N<-ggplot(pred.dat.N, aes(x=d15N.pred)) +
-  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+
-  xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+density.predict.N.pooled<-ggplot(pred.dat.N, aes(x=d15N.pred)) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+
+  xlab(expression(paste("Soil+Foliar ",delta^{15}, N["predicted"], sp="")))+
+  theme(axis.text = element_text(size = 6), axis.ticks = element_line(size = 0.2)) +
   ylab("density")+
+  scale_y_continuous(labels = label_number(accuracy = 0.5))+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2 +
-  annotate(geom="text", x=0, y=3.3, label=expression(paste(bold("A"))), size=3) 
+             linetype="dashed", lwd=0.2) + BW.back2
+  #annotate(geom="text", x=0, y=3.3, label=expression(paste(bold("A"))), size=3) 
 
 
 ######## Carbon
@@ -1072,30 +1079,28 @@ mwu(pred.dat.C, d13C.pred, Plot) # signif difference in predictions (p<0.001)
 predict.mean.C <- ddply(pred.dat.C, "Plot", summarise, grp.mean=mean(d13C.pred, na.rm=TRUE))
 predict.sd.C <- ddply(pred.dat.C, "Plot", summarise, sd=sd(d13C.pred, na.rm=TRUE))
 
-density.predict.C<-ggplot(pred.dat.C, aes(x=d13C.pred)) +
-  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+
-  xlab(expression(paste(delta^{13}, C["predicted"], sp="")))+
+density.predict.C.pooled<-ggplot(pred.dat.C, aes(x=d13C.pred)) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+
+  xlab(expression(paste("Soil+Foliar ", delta^{13}, C["predicted"], sp="")))+
+  theme(axis.text = element_text(size = 6), axis.ticks = element_line(size = 0.2)) +
   ylab("")+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.C, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2 +
-  annotate(geom="text", x=-32, y=1.7, label=expression(paste(bold("B"))), size=3)
+             linetype="dashed", lwd=0.2) + BW.back2 
+  #annotate(geom="text", x=-32, y=1.7, label=expression(paste(bold("B"))), size=3)
 
 # get the legend, # create some space to the left of the legend
 density.legend <- get_legend(
-  density.predict.C + #plot this one
+  density.predict.C.pooled + #plot this one
     theme(legend.title=element_blank())+ # no need for a title above legend
     theme(legend.box.margin = margin(0, 0, 0, 12)) + #box margin
     theme(legend.key.size = unit(0.3, "cm"))) # legend size
 
-gridExtra::grid.arrange(density.predict.N + theme(legend.position = "none"),
-                        density.predict.C + theme(legend.position = "none"),
+gridExtra::grid.arrange(density.predict.N.pooled + theme(legend.position = "none"),
+                        density.predict.C.pooled + theme(legend.position = "none"),
                         density.legend,
                         ncol=3, nrow=1, widths = c(1,1,0.4))
-
-dev.copy(pdf, "figures/Fig S2ab.mod.pred.NC.pdf", width = 6, height = 2.5)
-dev.off()
 ```
 
 ### Soil isoscapes    
@@ -1365,14 +1370,16 @@ predict.mean.N <- ddply(pred.soil.N, "Plot", summarise, grp.mean=mean(d15N.pred,
 predict.sd.N <- ddply(pred.soil.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
 
 density.predict.Nsoil<-ggplot(pred.soil.N, aes(x=d15N.pred)) +
-  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+ ylim(0,1.2) +
-  xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+ ylim(0,1.2) +
+  scale_y_continuous(labels = label_number(accuracy = 0.3))+
+  xlab(expression(paste("Soil ",delta^{15}, N["predicted"], sp="")))+
+  theme(axis.text = element_text(size = 6), axis.ticks = element_line(size = 0.2)) +
   ylab("density")+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2 +
-  annotate(geom="text", x=2, y=1.2, label=expression(paste(bold("A"))), size=3)
+             linetype="dashed", lwd=0.2) + BW.back2 
+  #annotate(geom="text", x=2, y=1.2, label=expression(paste(bold("C"))), size=3)
 
 
 ############## Carbon
@@ -1396,21 +1403,20 @@ mwu(pred.soil.C, d13C.pred, Plot) # signif difference in predictions (p<0.001)
 predict.mean.C <- ddply(pred.soil.C, "Plot", summarise, grp.mean=mean(d13C.pred, na.rm=TRUE))
 
 density.predict.Csoil<-ggplot(pred.soil.C, aes(x=d13C.pred)) +
-  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+ ylim(0,0.8) +
-  xlab(expression(paste(delta^{13}, C["predicted"], sp="")))+
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+ ylim(0,0.8) +
+  xlab(expression(paste("Soil ",delta^{13}, C["predicted"], sp="")))+
   ylab("")+
+  theme(axis.text = element_text(size = 6), axis.ticks = element_line(size = 0.2)) +
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.C, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2 +
-  annotate(geom="text", x=-28, y=0.8, label=expression(paste(bold("B"))), size=3)
+             linetype="dashed", lwd=0.2) + BW.back2 
+  #annotate(geom="text", x=-28, y=0.8, label=expression(paste(bold("D"))), size=3)
 
 gridExtra::grid.arrange(density.predict.Nsoil + theme(legend.position = "none"),
                         density.predict.Csoil + theme(legend.position = "none"),
                         density.legend,
                         ncol=3, nrow=1, widths = c(1,1,0.3))
-dev.copy(pdf, "figures/Fig S4_b.soil.mod.pred.pdf", width = 6, height = 2.5)
-dev.off()
 
 ```
 
@@ -1566,7 +1572,7 @@ dev.off()
   
 Density plots showing the distribution of all extrapolated points.
 Plant-isoscape: density plot for the d15N-predicted values for the plant-only (foliar) isoscape
-```{r, plant density plots, fig.show='hold', out.width='50%', message=FALSE, results='hide'}
+```{r, plant density, fig.show='hide', message=FALSE, results='hide'}
 # make density plots using predictions
 # combine the predictions for each plot
 
@@ -1593,17 +1599,45 @@ predict.mean.N <- ddply(pred.plants.N, "Plot", summarise, grp.mean=mean(d15N.pre
 predict.SD.N <- ddply(pred.plants.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
 
 density.predict.Nplants<-ggplot(pred.plants.N, aes(x=d15N.pred)) +
-  geom_density(aes(color=Plot, fill=Plot), alpha=0.5)+ ylim(0,2.5) +
-  xlab(expression(paste(delta^{15}, N["predicted"], sp="")))+
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+ ylim(0,2.5) +
+  xlab(expression(paste("Foliar ", delta^{15}, N["predicted"], sp="")))+
+  theme(axis.text = element_text(size = 6), axis.ticks = element_line(size = 0.2))+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  #annotate(geom="text", x=0, y=2.5, label=expression(paste(bold("E"))), size=3) +
   geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
              linetype="dashed", lwd=0.2) + BW.back2
 
-gridExtra::grid.arrange(density.predict.Nplants + theme(legend.position = "none"),
-                          density.legend, ncol=2, nrow=1, widths = c(1,0.2))
-dev.copy(pdf, "figures/Fig S6_plant.mod.pred.pdf", width = 4, height = 2.5)
-dev.off()
+```
 
+
+```{r, foliar density plots, fig.show='hold', out.width='50%', message=FALSE, results='hide'}
+### group all density plots
+
+fig.format3<-theme(panel.grid.major = element_blank(), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(), 
+                   axis.line = element_line(colour = "black", size=0.2), 
+                   text = element_text(size = 6))
+
+
+plot_grid((density.predict.N.pooled  + ylab("density") + 
+             theme(legend.position = "none")+ fig.format3),
+          
+          (density.predict.C.pooled + ylab("") + 
+             theme(legend.position = c(0.85, 0.85), legend.key.size = unit(0.3, "cm"),
+                   legend.title = element_blank())+fig.format3),
+          
+          (density.predict.Nsoil + ylab("density") + 
+             theme(legend.position = "none") +fig.format3),
+          
+          (density.predict.Csoil + ylab("")+ theme(legend.position = "none")+fig.format3),
+          
+          (density.predict.Nplants + theme(legend.position = "none")+fig.format3),
+          
+          labels=c('A', 'B', 'C', 'D', 'E'), label_size=8, hjust=-1, vjust= 2, ncol=2, nrow=3)
+
+dev.copy(pdf, "figures/Fig Sx__density plots.pdf", width = 3, height = 5)
+dev.off()
 ```
 
