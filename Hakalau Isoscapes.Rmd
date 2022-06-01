@@ -460,11 +460,21 @@ dev.off()
 ```{r DBH based age, Fig.cap="Supplementary Figure x. DBH-estimates of *A. koa* age in afforested and remnant forest plots.", fig.align='center', results='hide'}
 ###################### age
 # approx age at 0.7 cm/year
-HKP.data$low.age<-HKP.data$DBH.Total*0.7
-HKP.data$high.age<-HKP.data$DBH.Total*1.5
+HKP.data$const.growth.age<-HKP.data$DBH.Total/0.7
+
+HKP.data<-HKP.data %>%
+  mutate(growth.rate.cm.y = ifelse(Plot=="KP" & Sample=="Koa", 1.2,
+         ifelse(Plot=="RK" & Sample=="Koa", 0.6, "NA")))
+
+HKP.data$growth.rate.cm.y<-as.numeric(HKP.data$growth.rate.cm.y)
+
+HKP.data<-HKP.data %>%
+  mutate(alt.age = ifelse(Sample=="Koa", DBH.Total/growth.rate.cm.y, "NA"))
+
+HKP.data$alt.age<-as.numeric(HKP.data$alt.age)
 
 #### box plot of mutli-trunks, at 7 mm/y
-multi.trunk.lowage<-ggplot(HKP.data, aes(y=low.age, x=Plot, fill=Plot)) + 
+multi.trunk.altage<-ggplot(HKP.data, aes(y=alt.age, x=Plot, fill=Plot)) + 
   geom_boxplot(outlier.shape = NA, alpha=0.6)+
   geom_point(pch = 21, position = position_jitterdodge(), alpha=0.6) +
   xlab("Plots") +
@@ -473,13 +483,13 @@ multi.trunk.lowage<-ggplot(HKP.data, aes(y=low.age, x=Plot, fill=Plot)) +
   annotate(geom="text", x=1.55, y=35, label=expression(paste(bold("*"))), size=5) +
   theme_classic()
 
-multi.trunk.lowage 
+multi.trunk.altage 
 dev.copy(pdf, "figures/Fig.Sx.multi.trunk.age.pdf", width=4, height=4, encod="MacRoman")
 dev.off()
 
 # get some info on the means
-age.m<-aggregate(age~Plot, data=HKP.data, mean)
-age.sd<-aggregate(age~Plot, data=HKP.data, sd)
+age.m<-aggregate(alt.age~Plot, data=HKP.data, mean)
+age.sd<-aggregate(alt.age~Plot, data=HKP.data, sd)
 
 # Mann-Whitney U-Test
 mwu(HKP.data, age, Plot) # signif, p=0.010
