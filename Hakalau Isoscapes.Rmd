@@ -177,6 +177,42 @@ HKP.df<-read.csv("data/Hakalau.rawdata.csv")
 DBH.df<- HKP.df %>%
   select(c(DBH..cm.1, DBH..cm.2, DBH..cm.3, DBH..cm.4, DBH..cm.5))
 
+# all.dbh
+all.dbh<-DBH.df
+
+# make a plot factor
+all.dbh$Plot<-HKP.df$Plot 
+
+# remove unwanted NA rows
+all.dbh<-all.dbh[c(1:28),]
+
+# unlist to make into single y (all dbh) and the plots
+box.DBH<-data.frame(y=unlist(all.dbh[1:5]), x=all.dbh$Plot)
+
+colnames(box.DBH)<-c("dbh", "Plot")
+
+#### box plot of individual trunks
+indiv.trunk.dbh<-ggplot(box.DBH, aes(y=dbh, x=Plot, fill=Plot)) + 
+  geom_boxplot(outlier.shape = NA)+
+  geom_point(pch = 21, position = position_jitterdodge()) +
+  xlab("Plots") +
+  ylab("individual trunk dbh (cm)")+
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  theme_classic()
+
+indiv.trunk.dbh   
+
+dev.copy(pdf, "figures/indiv.trunk.dbh.pdf", width=4, height=4, encod="MacRoman")
+dev.off()
+
+#################
+  
+
+
+####################
+########################################
+####################
+  
 # replace NAs with zeros
 DBH.df<- DBH.df %>%
   mutate_each(funs(replace(., which(is.na(.)), 0)))
@@ -237,6 +273,15 @@ Ndfa$d15N.Rub<-Ndfa$d15N
 Ndfa$d15N.Koa<-Ndfa$mean.d15N.Ndfa
 
 ####################
+## analysis of covariance
+Ndfa.mod1<-lm(d15N.Rub~d15N.Koa*Plot, data=Ndfa) # full model
+Ndfa.mod2<-lm(d15N.Rub~d15N.Koa + Plot, data=Ndfa) # main effects only
+
+anova(Ndfa.mod1, Ndfa.mod2) # effects not different among plots
+
+Anova(Ndfa.mod1)
+plot(allEffects(Ndfa.mod1), par.strip.text=list(cex=0.6))
+
 #################### relationship between koa and rubus d15N?
 # Yes, but a bit stronger in the RK site
 mod.KP<-lm(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="KP"),]$d15N.Koa); anova(mod.KP)
@@ -290,73 +335,7 @@ dev.off()
   
 
 #### DBH, Canopy  d15N models  
-- plot against d15N values with model curves
-- scatters with models
-- d15N differ by PLOT (KP vs RK), no other effects or relationship with DBH or Canopy
 
-```{r, d15N and DBH Canopy, eval=FALSE}
-# ** No relationship between d15N and DBH or Canopy at plot level**
-# ** Effects at PLOTs on d15N (lower in KP) **
-
-
-######## plot of d15N and DBH, and d15N and Canopy area
-
-# all samples
-par(mfrow=c(1,2), mar=c(4,5,1,1))
-
-#### DBH
-mod.DBH<-lm(d15N~DBH.Total*Plot, data=HKP.data) # no interaction effect
-
-mod.DBH<-lm(d15N~DBH.Total+Plot, data=HKP.data)
-int<-coef(summary(mod.DBH))[1]
-DBH.slope<-coef(summary(mod.DBH))["DBH.Total",1] # DBH (slope for all figures)
-RK.int<-coef(summary(mod.DBH))["PlotRK",1] # RK, KP = 0
-
-
-# no significant relationship to d15N but a trend for DECREASE with DBH
-plot(d15N~DBH.Total, data=HKP.data,
-    col=c("coral","dodgerblue")[as.factor(Plot)],
-    pch=c(1,2)[as.factor(Plot)],
-    ylab=expression(paste(delta^{15}, N, " (\u2030, air)")),
-    xlab="DBH (cm)",
-    ylim=c(0,5), xlim=c(0,60))
-    ablineclip(int, DBH.slope, col="coral", lwd=2, 
-               x1 = min(HKP.data$DBH.Total[HKP.data$Plot=="KP"], na.rm=T), 
-               x2 = max(HKP.data$DBH.Total[HKP.data$Plot=="KP"], na.rm=T)) # KP model
-    ablineclip((int+ RK.int), DBH.slope, col="dodgerblue", lwd=2, 
-               x1 = min(HKP.data$DBH.Total[HKP.data$Plot=="RK"], na.rm=T), 
-               x2 = max(HKP.data$DBH.Total[HKP.data$Plot=="RK"], na.rm=T)) # RK model
-
-    
-#### Canopy
-mod.Can<-lm(d15N~Canopy.area*Plot, data=HKP.data) # no interaction
-
-mod.Can<-lm(d15N~Canopy.area+Plot, data=HKP.data)
-int<-coef(summary(mod.Can))[1]
-Can.slope<-coef(summary(mod.Can))["Canopy.area",1] # DBH (slope for all figures)
-RK.int<-coef(summary(mod.Can))["PlotRK",1] # RK, KP = 0
-
-# no significant relationship to d15N but a trend for INCREASE with canopy area
-plot(d15N~Canopy.area, data=HKP.data, yaxt="n",
-     col=c("coral","dodgerblue")[as.factor(Plot)],
-     pch=c(1,2)[as.factor(Plot)],
-     xlab=expression(paste("Canopy (m"^2,")")),
-     ylab="", 
-     ylim=c(0,5), xlim=c(0,80))
-     axis(side=2, labels=F)
-     ablineclip(int, Can.slope, col="coral", lwd=2, 
-               x1 = min(HKP.data$Canopy.area[HKP.data$Plot=="KP"], na.rm=T), 
-               x2 = max(HKP.data$Canopy.area[HKP.data$Plot=="KP"], na.rm=T)) # KP model
-     ablineclip((int+ RK.int), Can.slope, col="dodgerblue", lwd=2, 
-               x1 = min(HKP.data$Canopy.area[HKP.data$Plot=="RK"], na.rm=T), 
-               x2 = max(HKP.data$Canopy.area[HKP.data$Plot=="RK"], na.rm=T)) # RK model
-     legend("topright", legend=levels(HKP.data$Plot), box.lty=0, bg="transparent", lty=1, pch=c(1,2), 
-            col=c("coral", "dodgerblue"), cex=1)
-
-dev.copy(pdf, "figures/d15N.DBH.Canopy.pdf", width=7, height=5, encod="MacRoman")
-dev.off()
-```
-  
 With Plot being most important effect, divide DBH and Canopy to be plot mean +/- SE  
 *Supplemental Figure 1. with afforested and remnant forests*   
 - DBH and Canopy figure as bar chart and means
@@ -386,7 +365,7 @@ mwu(HKP.data, DBH.Total, Plot) # signif
 mwu(HKP.data, Canopy.area, Plot) # not
 ```
 
-```{r mean plots for DBH and Canopy, Fig.cap="Supplementary Figure 1. Mean +/- SE diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center', results='hide'}
+```{r mean plots for DBH and Canopy, Fig.cap="Supplementary Figure 1. Mean +/- SE diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center', results='hide', eval=FALSE}
 #### plots
 DBH.m<-aggregate(DBH.Total~Plot, data=HKP.data, mean)
 Can.m<-aggregate(Canopy.area~Plot, data=HKP.data, mean)
@@ -431,9 +410,79 @@ Canopy.plot<-ggplot(data=mean.eco, aes(x=Plot, y=Can))+
 #  figures together
 plot_grid(DBH.plot, Canopy.plot,
      labels=c('A', 'B'), label_size=8, hjust=-1, vjust= 3, ncol=2, nrow=1)
-dev.copy(pdf, "figures/FigS1.DBHCanopy.pdf", width=4, height=3.5, encod="MacRoman")
+dev.copy(pdf, "figures/FigS1x.DBHCanopy.pdf", width=4, height=3.5, encod="MacRoman")
+dev.off()
+```
+
+
+```{r DBH and Canopy scatte, Fig.cap="Supplementary Figure 1.  Multi-trunk and individual diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center', results='hide'}
+##### alternative plots
+
+multi.trunk.box<-ggplot(HKP.data, aes(x=Plot, y=DBH.Total, fill=Plot)) + 
+  geom_boxplot(outlier.shape = NA, alpha=0.6)+
+  geom_point(pch = 21, position = position_jitterdodge(), alpha=0.6) +
+  xlab("Plots") +
+  ylab("dbh (cm)") +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  annotate(geom="text", x=1.55, y=50, label=expression(paste(bold("*"))), size=5) +
+  theme_classic()
+
+
+canopy.box<-ggplot(HKP.data, aes(x=Plot, y=Canopy.area, fill=Plot)) + 
+  geom_boxplot(outlier.shape = NA, alpha=0.6)+
+  geom_point(pch = 21, position = position_jitterdodge(), alpha=0.6) +
+  xlab("Plots") +
+  ylab(expression(paste("Canopy (m"^2,")"))) +
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  theme_classic()
+
+# get the legend, # create some space to the left of the legend
+box.legend <- get_legend(
+  multi.trunk.box + 
+    theme(legend.box.margin = margin(0, 0, 0, 12)) +
+    theme(legend.title=element_blank())+ # no need for a title above legend
+    theme(legend.key.size = unit(0.5, "cm")))
+
+#  figures together
+alt_dbh.canopy<-plot_grid(plot_grid(multi.trunk.box + theme(legend.position = "none"), 
+                     canopy.box + theme(legend.position = "none"),
+                     box.legend,
+                     nrow=1, ncol=3, labels=c('A', 'B'), 
+          label_size=8, hjust=-1, vjust= 3, rel_widths = c(8, 8, 3)))
+
+
+alt_dbh.canopy       
+dev.copy(pdf, "figures/FigS1.DBHCanopy.pdf", width=6, height=3.5, encod="MacRoman")
+dev.off()
+```
+
+
+```{r DBH based age, Fig.cap="Supplementary Figure x. DBH-estimates of *A. koa* age in afforested and remnant forest plots.", fig.align='center', results='hide'}
+###################### age
+# approx age at 0.7 cm/year
+HKP.data$low.age<-HKP.data$DBH.Total*0.7
+HKP.data$high.age<-HKP.data$DBH.Total*1.5
+
+#### box plot of mutli-trunks, at 7 mm/y
+multi.trunk.lowage<-ggplot(HKP.data, aes(y=low.age, x=Plot, fill=Plot)) + 
+  geom_boxplot(outlier.shape = NA, alpha=0.6)+
+  geom_point(pch = 21, position = position_jitterdodge(), alpha=0.6) +
+  xlab("Plots") +
+  ylab("approx. age (dbh cm * 0.7 cm/y)")+
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  annotate(geom="text", x=1.55, y=35, label=expression(paste(bold("*"))), size=5) +
+  theme_classic()
+
+multi.trunk.lowage 
+dev.copy(pdf, "figures/Fig.Sx.multi.trunk.age.pdf", width=4, height=4, encod="MacRoman")
 dev.off()
 
+# get some info on the means
+age.m<-aggregate(age~Plot, data=HKP.data, mean)
+age.sd<-aggregate(age~Plot, data=HKP.data, sd)
+
+# Mann-Whitney U-Test
+mwu(HKP.data, age, Plot) # signif, p=0.010
 ```
   
 Run statistics on the responses (dd15N, 13C, tissue C and N)
