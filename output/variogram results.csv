@@ -1,0 +1,19 @@
+﻿kirg,,,,,,,,
+krig,isotope,site,model,nugget,psill,range,sserr,kappa
+soil + folair,15N,plantation,spherical,0.00,5.83,2.19,58.20,NA
+soil + folair,15N,remnant,spherical,0.00,4.57,2.00,190.97,NA
+soil + folair,13C,plantation,spherical,0.00,5.80,2.20,129.00,NA
+soil + folair,13C,remnant,spherical,0.00,9.26,3.00,1042.44,NA
+soil,15N,plantation,Ste,0.00,1.44,3.43,0.01,10
+soil,15N,remnant,Ste,0.00,1.20,8.49,0.08,0.6
+soil,13C,plantation,Ste,0.24,1.17,5.09,0.35,10
+soil,13C,remnant,Ste,0.40,2.42,26.46,0.29,
+foliar,15N,plantation,Exponential,0.20,0.40,3.00,0.09,NA
+foliar,15N,remnant,Gaussian,0.22,1.20,12.11,0.07,
+,,,,,,,,
+,,,,,,,,
+SILL: The value at which the model first flattens out.,,,,,,,,
+RANGE: The distance at which the model first flattens out.,,,,,,,,
+NUGGET: The value at which the semi-variogram (almost) intercepts the y-value.,,,,,,,,
+The spherical model is one of the most common models we use in variogram modeling,,,,,,,,
+"This object contains the experimental variogram,the fitted variogram model and the sums of squares (sserr) between the sample variogram and thefitted variogram model",,,,,,,,

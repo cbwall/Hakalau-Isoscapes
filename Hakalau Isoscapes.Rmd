@@ -194,11 +194,15 @@ colnames(box.DBH)<-c("dbh", "Plot")
 #### box plot of individual trunks
 indiv.trunk.dbh<-ggplot(box.DBH, aes(y=dbh, x=Plot, fill=Plot)) + 
   geom_boxplot(outlier.shape = NA)+
-  geom_point(pch = 21, position = position_jitterdodge()) +
+  geom_point(pch = 21, position = position_jitterdodge(), alpha=0.6) +
   xlab("Plots") +
   ylab("individual trunk dbh (cm)")+
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   theme_classic()
+
+single.dbh.m<-aggregate(dbh~Plot, data=box.DBH, mean) # 20.8 (KP), 19.5 (RK) 
+single.dbh.sd<-aggregate(dbh~Plot, data=box.DBH, sd) # 8.4 (KP), 14.2 (RK)
+
 
 indiv.trunk.dbh   
 
@@ -415,7 +419,7 @@ dev.off()
 ```
 
 
-```{r DBH and Canopy scatte, Fig.cap="Supplementary Figure 1.  Multi-trunk and individual diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center', results='hide'}
+```{r DBH and Canopy scatter, Fig.cap="Supplementary Figure 1.  Multi-trunk and individual diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center', results='hide'}
 ##### alternative plots
 
 multi.trunk.box<-ggplot(HAK.data, aes(x=Plot, y=DBH.Total, fill=Plot)) + 
@@ -459,17 +463,17 @@ dev.off()
 
 ```{r DBH based age, Fig.cap="Supplementary Figure x. DBH-estimates of *A. koa* age in afforested and remnant forest plots.", fig.align='center', results='hide'}
 ###################### age
-# approx age at 0.7 cm/year
-HAK.data$const.growth.age<-HAK.data$DBH.Total/1.0
+# approx age
 
 HAK.data<-HAK.data %>%
-  mutate(growth.rate.cm.y = ifelse(Plot=="KP" & Sample=="Koa", 1.2,
-         ifelse(Plot=="RK" & Sample=="Koa", 0.6, "NA")))
+  mutate(growth.rate.mm.y = ifelse(Plot=="KP" & Sample=="Koa", 12,
+         ifelse(Plot=="RK" & Sample=="Koa", 4, "NA")))
 
-HAK.data$growth.rate.cm.y<-as.numeric(HAK.data$growth.rate.cm.y)
+HAK.data$growth.rate.mm.y<-as.numeric(HAK.data$growth.rate.mm.y)
 
 HAK.data<-HAK.data %>%
-  mutate(alt.age = ifelse(Sample=="Koa", DBH.Total/growth.rate.cm.y, "NA"))
+  mutate(alt.age = ifelse(Sample=="Koa", (DBH.Total*10)/growth.rate.mm.y, "NA"))
+# correct for DBH being in cm and not mm
 
 HAK.data$alt.age<-as.numeric(HAK.data$alt.age)
 
@@ -478,9 +482,9 @@ multi.trunk.altage<-ggplot(HAK.data, aes(y=alt.age, x=Plot, fill=Plot)) +
   geom_boxplot(outlier.shape = NA, alpha=0.6)+
   geom_point(pch = 21, position = position_jitterdodge(), alpha=0.6) +
   xlab("Plots") +
-  ylab("approx. age (dbh [cm/y])")+
+  ylab("age estimate (year)")+
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
-  annotate(geom="text", x=1.55, y=35, label=expression(paste(bold("*"))), size=5) +
+  annotate(geom="text", x=1.55, y=75, label=expression(paste(bold("*"))), size=5) +
   theme_classic()
 
 multi.trunk.altage 
@@ -488,11 +492,14 @@ dev.copy(pdf, "figures/Fig.Sx.multi.trunk.age.pdf", width=4, height=4, encod="Ma
 dev.off()
 
 # get some info on the means
-age.m<-aggregate(const.growth.age~Plot, data=HAK.data, mean)
-age.sd<-aggregate(const.growth.age~Plot, data=HAK.data, sd)
+age.m<-aggregate(alt.age~Plot, data=HAK.data, mean)
+age.sd<-aggregate(alt.age~Plot, data=HAK.data, sd)
+age.n<-aggregate(alt.age~Plot, data=HAK.data, length)
+
+
 
 # Mann-Whitney U-Test
-mwu(HAK.data, age, Plot) # signif, p=0.010
+mwu(HAK.data, alt.age, Plot) # signif, p=0.010
 ```
   
 Run statistics on the responses (dd15N, 13C, tissue C and N)
@@ -798,7 +805,7 @@ dev.off()
   
 First generate an isoscape for the compelte pooled sample set: the soil, koa, and *Rubus*. Do this for each of the two forests.  Figure 4ab
   
-*Acacia koa* plantation (KP) δ^15^N isoscape
+*Acacia koa* plantation (KP) pooled δ^15^N isoscape
 ```{r, krig KP d15N, message=FALSE, results='hide'}
 ## Krig KP sites
 coordinates(krig.KP)<- ~x.meter + y.meter
@@ -824,6 +831,9 @@ Grid.KP@bbox<-bbox(S) # expand for plot corner
 # autokrige
 d15N.KP.auto <- autoKrige(d15N ~ 1, krig.KP, Grid.KP) # ordinary kriging
 plot(d15N.KP.auto, sp.layout = list(pts = list("sp.points", krig.KP)))
+dev.copy(pdf, "figures/notused/KP_15N_pooled_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
+
 #d15N.KP.auto$krige_output
 
 # make to dataframes for lm, combine
@@ -861,14 +871,14 @@ col.scheme.N <- colorRampPalette(my.palette3)
 
 plotd15N.krig.KP<-spplot(d15N.KP.auto$krige_output["var1.pred"], col.regions=col.scheme.N, 
        sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
-                        col=c("black"), cex=0.5, alpha=0.5),
+                        col=c("black"), cex=0.7, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 
 ###########################
 ```
 
-Remnant Forest (RK) δ^15^N isoscape
+Remnant Forest (RK) pooled δ^15^N isoscape
 ```{r, krig RK d15N, message=FALSE, results='hide'}
 ###########################
 # RK Site Krig
@@ -904,6 +914,8 @@ Grid.RK@bbox<-bbox(S) # expand for plot corner
 # increasing the range gave better fit than auto
 d15N.RK.auto <- autoKrige(d15N ~ 1, krig.RK, Grid.RK, fix.value=c(NA, 2, NA)) # ordinary kriging
 plot(d15N.RK.auto, sp.layout = list(pts = list("sp.points", krig.RK)))
+dev.copy(pdf, "figures/notused/RK_15N_pooled_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
 #d15N.RK.auto$krige_output
 
 # make to dataframes for lm, combine
@@ -924,7 +936,7 @@ mean(pred.RK.df.N$krige_output.var1.stdev, na.rm=T) # 1.9
 #predicted krige
 plotd15N.krig.RK<-spplot(d15N.RK.auto$krige_output["var1.pred"], col.regions=col.scheme.N, 
        sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
-                        col="black", cex=0.5, alpha=0.5), 
+                        col="black", cex=0.7, alpha=0.5), 
        main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.7))
 ```
 
@@ -973,6 +985,9 @@ dev.off()
 # autokrige
 d13C.KP.auto <- autoKrige(d13C ~ 1, krig.KP, Grid.KP) # ordinary kriging
 plot(d13C.KP.auto, sp.layout = list(pts = list("sp.points", krig.KP)))
+dev.copy(pdf, "figures/notused/KP_13C_pooled_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
+
 #d13C.KP.auto$krige_output
 
 # make to dataframes for lm, combine
@@ -1007,7 +1022,7 @@ col.scheme.C <- colorRampPalette(my.palette4)
 
 plotd13C.krig.KP<-spplot(d13C.KP.auto$krige_output["var1.pred"], col.regions=col.scheme.C, 
        sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample],
-                        col="black", cex=0.5, alpha=0.5),
+                        col="black", cex=0.7, alpha=0.5),
        main=list(label=expression(paste(delta^{13}, C, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 
@@ -1021,9 +1036,12 @@ Remnant Forest (RK) d13C isoscape: Figure 4cd
 ###########################
 ## Krig RK site 
 
-# autokrige
-d13C.RK.auto <- autoKrige(d13C ~ 1, krig.RK, Grid.RK, fix.value=c(NA, 1, NA)) # ordinary kriging
+# autokrige, with nugget, range and sill 
+d13C.RK.auto <- autoKrige(d13C ~ 1, krig.RK, Grid.RK, fix.value=c(NA, 3, NA)) # ordinary kriging
 plot(d13C.RK.auto, sp.layout = list(pts = list("sp.points", krig.RK)))
+dev.copy(pdf, "figures/notused/RK_13C_pooled_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
+
 #d13C.RK.auto$krige_output
 
 # make to dataframes for lm, combine
@@ -1048,10 +1066,10 @@ mean(pred.RK.df.C$krige_output.var1.stdev, na.rm=T) # 2.8
 # variance
 # spplot(d13C.RK.auto$krige_output,"var1.stdev")
 
-#predicted krige
+#predicted krige 
 plotd13C.krig.RK<-spplot(d13C.RK.auto$krige_output["var1.pred"], col.regions=col.scheme.C, 
        sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample],
-                        col="black", cex=0.5, alpha=0.5), 
+                        col="black", cex=0.7, alpha=0.5), 
        main=list(label=expression(paste(delta^{13}, C, " - RK (Remnant Forest)")), cex=0.7))
 ```
 
@@ -1200,6 +1218,9 @@ Grid.KP@bbox<-bbox(S) # expand for plot corner
 # autokrige
 d15N.KP.soil <- autoKrige(d15N ~ 1, KP.soil, Grid.KP) # ordinary kriging
 plot(d15N.KP.soil, sp.layout = list(pts = list("sp.points", KP.soil)))
+dev.copy(pdf, "figures/notused/KP_15N_soil_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
+
 #d15N.KP.soil$krige_output
 
 # make to dataframes for lm, combine
@@ -1223,8 +1244,8 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 ########### plot to diagnostic variogram
 #predicted krige
 plotd15N.krig.KP.soil<-spplot(d15N.KP.soil$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", KP.soil, pch=1, 
-                        col=c("black"), cex=0.5, alpha=0.5),
+       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.7, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 ```
 
@@ -1260,9 +1281,11 @@ bbox(S)
 RK.soil@bbox<-bbox(S) # expanded binding box for data
 Grid.RK@bbox<-bbox(S) # expand for plot corner
 
-# autokrige
-d15N.RK.soil <- autoKrige(d15N ~ 1, RK.soil, Grid.RK) # ordinary kriging
+# autokrige with nugget, range and sill 
+d15N.RK.soil <- autoKrige(d15N ~ 1, RK.soil, fix.values = c(0,NA,1.2), Grid.RK) # ordinary kriging
 plot(d15N.RK.soil, sp.layout = list(pts = list("sp.points", RK.soil)))
+dev.copy(pdf, "figures/notused/RK_15N_soil_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
 #d15N.RK.soil$krige_output
 
 # make to dataframes for lm, combine
@@ -1286,12 +1309,12 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd15N.krig.RK.soil<-spplot(d15N.RK.soil$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", RK.soil, pch=1, 
-                        col=c("black"), cex=0.5, alpha=0.5),
+       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
+                        col=c("black"), cex=0.7, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
 ```
 
-combine the soil isoscapes
+combine the 15N soil isoscapes
 ```{r, KPRK soil krig, message=FALSE, results='hide'}
 #####################
 grid.draw.ggmatrix <- function(x, recording = TRUE) {
@@ -1313,6 +1336,8 @@ soil isotopes, first the restored site then the remnant site
 # autokrige
 d13C.KP.soil <- autoKrige(d13C ~ 1, KP.soil, Grid.KP) # ordinary kriging
 plot(d13C.KP.soil, sp.layout = list(pts = list("sp.points", KP.soil)))
+dev.copy(pdf, "figures/notused/KP_13C_soil_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
 #d13C.KP.soil$krige_output
 
 # make to dataframes for lm, combine
@@ -1342,8 +1367,8 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd13C.krig.KP.soil<-spplot(d13C.KP.soil$krige_output["var1.pred"], col.regions=col.scheme.C, 
-       sp.layout = list("sp.points", KP.soil, pch=1, 
-                        col=c("black"), cex=0.5, alpha=0.5),
+       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.7, alpha=0.5),
        main=list(label=expression(paste(delta^{13}, C, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 
@@ -1355,6 +1380,8 @@ plotd13C.krig.KP.soil<-spplot(d13C.KP.soil$krige_output["var1.pred"], col.region
 # autokrige
 d13C.RK.soil <- autoKrige(d13C ~ 1, RK.soil, Grid.RK) # ordinary kriging
 plot(d13C.RK.soil, sp.layout = list(pts = list("sp.points", RK.soil)))
+dev.copy(pdf, "figures/notused/RK_13C_soil_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
 #d13C.RK.soil$krige_output
 
 # make to dataframes for lm, combine
@@ -1384,11 +1411,13 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd13C.krig.RK.soil<-spplot(d13C.RK.soil$krige_output["var1.pred"], col.regions=col.scheme.C, 
-       sp.layout = list("sp.points", RK.soil, pch=1, 
-                        col=c("black"), cex=0.5, alpha=0.5),
+       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
+                        col=c("black"), cex=0.7, alpha=0.5),
        main=list(label=expression(paste(delta^{13}, C, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
+```
 
-
+combine the 13C soil-isoscapes
+```{r, KPRK plants krig, message=FALSE, results='hide'}
 #####################
 grid.draw.ggmatrix <- function(x, recording = TRUE) {
   print(x)
@@ -1486,7 +1515,7 @@ gridExtra::grid.arrange(density.predict.Nsoil + theme(legend.position = "none"),
 Subset data and only examine plants.     
 - *Restored forest (KP)* and *Remnant Forest (RK)*
 
-Plant-isoscape: Restored forest and remnant forest (Plant isoscape: d15N, Figure S5).  
+Plant/Foliar-isoscape: Restored forest and remnant forest (Plant isoscape: d15N, Figure S5).  
 Koa Plantation:
 ```{r, KP plants krig, message=FALSE, results='hide'}
 #### d15N Plants isoscape
@@ -1519,9 +1548,9 @@ Grid.KP@bbox<-bbox(S) # expand for plot corner
 
 # autokrige
 d15N.KP.plants <- autoKrige(d15N ~ 1, KP.plants, Grid.KP, fix.value=c(0.2, 3, 0.6)) # ordinary kriging
-
-############## diagnostics
 plot(d15N.KP.plants, sp.layout = list(pts = list("sp.points", KP.plants)))
+dev.copy(pdf, "figures/notused/KP_15N_foliar_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
 #d15N.KP.plants$krige_output
 
 # make to dataframes for lm, combine
@@ -1544,14 +1573,14 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd15N.krig.KP.plants<-spplot(d15N.KP.plants$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", KP.plants, pch=c(16,17)[KP.plants$Sample],
-                        col=c("black"), cex=0.5, alpha=0.5),
+       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.7, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 #plotd15N.krig.KP.plants
 ```
   
-Remnant Koa forest
+Remnant Koa forest foliar isoscape
 ```{r, RK plants krig, message=FALSE, results='hide'}
 ###########################
 # RK Site Krig
@@ -1586,6 +1615,8 @@ Grid.RK@bbox<-bbox(S) # expand for plot corner
 # autokrige
 d15N.RK.plants <- autoKrige(d15N ~ 1, RK.plants, Grid.RK) # ordinary kriging
 plot(d15N.RK.plants, sp.layout = list(pts = list("sp.points", RK.plants)))
+dev.copy(pdf, "figures/notused/RK_15N_foliar_variogram.pdf", width=9, height=5, encod="MacRoman")
+dev.off()
 #d15N.RK.plants$krige_output
 
 # make to dataframes for lm, combine
@@ -1609,13 +1640,13 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd15N.krig.RK.plants<-spplot(d15N.RK.plants$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", RK.plants, pch=c(16,17)[RK.plants$Sample],
-                        col=c("black"), cex=0.5, alpha=0.5),
+       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
+                        col=c("black"), cex=0.7, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
 #plotd15N.krig.RK.plants
 ```
   
-combine the two plant-isoscapes
+combine the two foliar-isoscapes
 ```{r, KPRK plants krig, message=FALSE, results='hide'}
 #####################
 grid.draw.ggmatrix <- function(x, recording = TRUE) {
