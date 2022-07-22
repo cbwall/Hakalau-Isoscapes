@@ -31,8 +31,8 @@ Data collected 20-21 August 2019 in Hakalau Forest, Hawai'i Island. plants and p
 Plants samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a δ^13^C and δ^15^N stable isotope landscape, hereafter 'isoscape'. Koa and *Rubus* spp. were collected within each 4 x 5m subplot.  
 
 *Plot densities were...*  
-KP: Koa (18 trees) Rubus (14 plants) per 20 x 35m plot= *0.026 Koa m^-2^, 0.020 Rubus m^-2^*
-RK: Koa (10 trees) Rubus (28 plants) per 20 x 35m plot= *0.014 Koa m^-2^, 0.040 Rubus m^-2^*
+KP: Koa (18 trees) Rubus (14 plants) per 20 x 35m plot= *257 Koa and 200 Rubus hectare*
+RK: Koa (10 trees) Rubus (28 plants) per 20 x 35m plot= *142 Koa and 400 Rubus hectare*
 
 ### Site Maps
 ```{r, site maps, fig.cap="Figure 1. Site map of (a) the Hawaiian Island archipelago, (b) sampling plot in Hakalau Forest Refuge, and (c) plot layouts, highlighting *Acacia koa* density.", fig.align='center', results='hide'}
