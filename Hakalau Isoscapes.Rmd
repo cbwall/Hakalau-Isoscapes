@@ -870,8 +870,8 @@ col.scheme.N <- colorRampPalette(my.palette3)
 
 
 plotd15N.krig.KP<-spplot(d15N.KP.auto$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
-                        col=c("black"), cex=0.7, alpha=0.5),
+       sp.layout = list("sp.points", krig.KP, pch=c(17,2,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 
@@ -935,8 +935,8 @@ mean(pred.RK.df.N$krige_output.var1.stdev, na.rm=T) # 1.9
 
 #predicted krige
 plotd15N.krig.RK<-spplot(d15N.RK.auto$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
-                        col="black", cex=0.7, alpha=0.5), 
+       sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample], 
+                        col="black", cex=0.8, alpha=0.5), 
        main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.7))
 ```
 
@@ -948,8 +948,8 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d15N plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd15N.krig.KP, plotd15N.krig.RK, ncol=2, nrow=1, widths = c(1.2,1))
-dev.copy(png, "figures/FigS2_ab.d15N.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
+gridExtra::grid.arrange(plotd15N.krig.KP, plotd15N.krig.RK, ncol=2, nrow=1) #widths = c(1.2,1))
+dev.copy(png, "figures/FigS2_ab.d15N.comb.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
 
@@ -1021,15 +1021,15 @@ col.scheme.C <- colorRampPalette(my.palette4)
 
 
 plotd13C.krig.KP<-spplot(d13C.KP.auto$krige_output["var1.pred"], col.regions=col.scheme.C, 
-       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample],
-                        col="black", cex=0.7, alpha=0.5),
+       sp.layout = list("sp.points", krig.KP, pch=c(17,2,1)[krig.KP$Sample],
+                        col="black", cex=0.8, alpha=0.5),
        main=list(label=expression(paste(delta^{13}, C, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 
 ###########################
 ```
 
-Remnant Forest (RK) d13C isoscape: Figure 4cd
+Remnant Forest (RK) d13C isoscape: Figure 2cd
 ```{r, krig RK d13C, message=FALSE, results='hide'}
 ###########################
 # RK Site Krig
@@ -1068,8 +1068,8 @@ mean(pred.RK.df.C$krige_output.var1.stdev, na.rm=T) # 2.8
 
 #predicted krige 
 plotd13C.krig.RK<-spplot(d13C.RK.auto$krige_output["var1.pred"], col.regions=col.scheme.C, 
-       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample],
-                        col="black", cex=0.7, alpha=0.5), 
+       sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample],
+                        col="black", cex=0.8, alpha=0.5), 
        main=list(label=expression(paste(delta^{13}, C, " - RK (Remnant Forest)")), cex=0.7))
 ```
 
@@ -1081,8 +1081,8 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d13C plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd13C.krig.KP,plotd13C.krig.RK, ncol=2, nrow=1, widths = c(1.2,1))
-dev.copy(png, "figures/FigS2_cd.d13C.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
+gridExtra::grid.arrange(plotd13C.krig.KP,plotd13C.krig.RK, ncol=2, nrow=1) #widths = c(1.2,1))
+dev.copy(png, "figures/FigS2_cd.d13C.comb.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
 
@@ -1190,7 +1190,7 @@ Subset data and only examine SOIL.
 ###### KP site d15N
 
 ## d15N SOIL plot
-krig.KP<- scape.data %>% filter(Plot=="KP") # just KP
+# krig.KP<- scape.data %>% filter(Plot=="KP") # just KP
 KP.soil<-  krig.KP[(krig.KP$Sample=="Soil"),] #just soil
 KP.soil$Sample<-droplevels(KP.soil$Sample)
 
@@ -1244,8 +1244,8 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 ########### plot to diagnostic variogram
 #predicted krige
 plotd15N.krig.KP.soil<-spplot(d15N.KP.soil$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
-                        col=c("black"), cex=0.7, alpha=0.5),
+       sp.layout = list("sp.points", krig.KP, pch=c(17,2,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 ```
 
@@ -1256,7 +1256,7 @@ RK soil isoscape
 ###########################
 
 ## d15N SOIL plot
-krig.RK<- scape.data %>% filter(Plot=="RK") # just KP
+#krig.RK<- scape.data %>% filter(Plot=="RK") # just KP
 RK.soil<-  krig.RK[(krig.RK$Sample=="Soil"),] #just soil
 RK.soil$Sample<-droplevels(RK.soil$Sample)
 
@@ -1309,8 +1309,8 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd15N.krig.RK.soil<-spplot(d15N.RK.soil$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
-                        col=c("black"), cex=0.7, alpha=0.5),
+       sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
 ```
 
@@ -1322,7 +1322,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d15N plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd15N.krig.KP.soil, plotd15N.krig.RK.soil, ncol=2, nrow=1, widths = c(1.2,1))
+gridExtra::grid.arrange(plotd15N.krig.KP.soil, plotd15N.krig.RK.soil, ncol=2, nrow=1) #widths = c(1.2,1))
 dev.copy(png, "figures/Fig5_ab.d15N.soil.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
@@ -1367,8 +1367,8 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd13C.krig.KP.soil<-spplot(d13C.KP.soil$krige_output["var1.pred"], col.regions=col.scheme.C, 
-       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
-                        col=c("black"), cex=0.7, alpha=0.5),
+       sp.layout = list("sp.points", krig.KP, pch=c(17,2,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
        main=list(label=expression(paste(delta^{13}, C, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 
@@ -1411,8 +1411,8 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd13C.krig.RK.soil<-spplot(d13C.RK.soil$krige_output["var1.pred"], col.regions=col.scheme.C, 
-       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
-                        col=c("black"), cex=0.7, alpha=0.5),
+       sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
        main=list(label=expression(paste(delta^{13}, C, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
 ```
 
@@ -1424,7 +1424,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d13C plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd13C.krig.KP.soil, plotd13C.krig.RK.soil, ncol=2, nrow=1, widths = c(1.2,1))
+gridExtra::grid.arrange(plotd13C.krig.KP.soil, plotd13C.krig.RK.soil, ncol=2, nrow=1) #widths = c(1.2,1))
 dev.copy(png, "figures/Fig5_cd.d13C.isoscape.soils.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
@@ -1521,7 +1521,7 @@ Koa Plantation:
 #### d15N Plants isoscape
 
 ## d15N plants plot
-krig.KP<- scape.data %>% filter(Plot=="KP") # just KP
+# krig.KP<- scape.data %>% filter(Plot=="KP") # just KP
 KP.plants<-  krig.KP[!(krig.KP$Sample=="Soil"),] #just plants, remove the soil
 KP.plants$Sample<-droplevels(KP.plants$Sample)
 
@@ -1573,8 +1573,8 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd15N.krig.KP.plants<-spplot(d15N.KP.plants$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", krig.KP, pch=c(16,17,1)[krig.KP$Sample], 
-                        col=c("black"), cex=0.7, alpha=0.5),
+       sp.layout = list("sp.points", krig.KP, pch=c(17,2,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 #plotd15N.krig.KP.plants
@@ -1587,7 +1587,7 @@ Remnant Koa forest foliar isoscape
 ###########################
 
 ## d15N plants plot
-krig.RK<- scape.data %>% filter(Plot=="RK") # just KP
+#krig.RK<- scape.data %>% filter(Plot=="RK") # just RK
 RK.plants<-  krig.RK[!(krig.RK$Sample=="Soil"),] #just plants, remove soil
 RK.plants$Sample<-droplevels(RK.plants$Sample)
 
@@ -1640,8 +1640,8 @@ my.palette <- brewer.pal(n = 9, name = "RdBu")
 
 #predicted krige
 plotd15N.krig.RK.plants<-spplot(d15N.RK.plants$krige_output["var1.pred"], col.regions=col.scheme.N, 
-       sp.layout = list("sp.points", krig.RK, pch=c(16,17,1)[krig.RK$Sample], 
-                        col=c("black"), cex=0.7, alpha=0.5),
+       sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
        main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.8), colorkey=TRUE)
 #plotd15N.krig.RK.plants
 ```
@@ -1654,7 +1654,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d15N plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd15N.krig.KP.plants, plotd15N.krig.RK.plants, ncol=2, nrow=1, widths = c(1.2,1))
+gridExtra::grid.arrange(plotd15N.krig.KP.plants, plotd15N.krig.RK.plants, ncol=2, nrow=1) #widths = c(1.2,1))
 dev.copy(png, "figures/Fig 6_ab.d15N.isoscape.plants.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
