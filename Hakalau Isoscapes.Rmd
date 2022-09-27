@@ -20,7 +20,7 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
 
 # load packages
-pacman::p_load("RgoogleMaps", "SDMTools", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats", "RColorBrewer")
+pacman::p_load("RgoogleMaps", "SDMTools", "car", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats", "RColorBrewer", "grid", "ggsn", "sf")
 
 ```
 
@@ -109,7 +109,7 @@ mapKP<-get_map(KP.gps,
               source="google", extent= "device", legend="topright")
 
 KP.map<-ggmap(mapKP, group=type)+
-  geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=KP, alpha=0.5, size=3)+
+  geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=KP, alpha=0.8, size=2.5)+
   scale_y_continuous(limits=c(19.82165, 19.82225))+
   scale_x_continuous(limits=c(-155.3194, -155.3183)) +
   theme(legend.position="top",
@@ -121,7 +121,7 @@ KP.map<-ggmap(mapKP, group=type)+
   guides(colour= guide_legend(override.aes = list(color = "white"))) +
   scale_color_manual(values=c('red','mediumseagreen'))+
   labs(x="Longitude", y="Latitude") +
-  annotate("text", x=-155.31923, y=19.82225, label= "Restored Forest (KP)", size=3, col="white")+
+  annotate("text", x=-155.31923, y=19.82225, label= "Koa Plantation (KP)", size=2.5, col="white")+
   ggsn::scalebar(x.min=-155.3183, x.max=-155.3187, y.min=19.82165, y.max=19.82225, dist=10, 
                dist_unit="m", transform=TRUE,
               st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84", st.color="white", border.size=0.5)
@@ -139,7 +139,7 @@ mapRK<-get_map(RK.gps,
                source="google", extent= "device", legend="topright")
 
 RK.map<-ggmap(mapRK, group=type)+
-  geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=RK.edit, alpha=0.5, size=3)+
+  geom_point(aes(x=longitude, y=latitude, shape=type, color=type), data=RK.edit, alpha=0.8, size=2.5)+
   scale_color_manual(values=c('red','mediumseagreen', "dodgerblue"))+
   scale_shape_manual(values=c(16, 17, 3)) +
   scale_y_continuous(limits=c(19.82120, 19.82195))+
@@ -150,19 +150,25 @@ RK.map<-ggmap(mapRK, group=type)+
         plot.margin = unit(c(0, 0.5, 0, 0), "cm"), 
         text = element_text(size=8)) +
   labs(x="Longitude", y="") +
-  annotate("text", x=-155.31555, y=19.821925, label= "Remnant Forest (RK)", size=3, col="white")+
+  annotate("text", x=-155.31555, y=19.821925, label= "Remnant Forest (RK)", size=2.5, col="white")+
   ggsn::scalebar(x.min=-155.3148, x.max=-155.3144, y.min=19.8212, y.max=19.8219, dist=10, 
                dist_unit="m", transform=TRUE,
               st.bottom=FALSE, st.size=2, box.fill=c("gray50", "white"), model="WGS84", st.color="white", border.size=0.5)
 
 
-site.plots<-plot_grid(hi_map_for_man, Hakalau.site, KP.map, RK.map, 
-          labels=c('A', 'B', 'C', 'D'), label_size=8, hjust=-1, vjust= 2, ncol=2, nrow=2)
-site.plots
+site.plots1<-plot_grid(hi_map_for_man, Hakalau.site, 
+          labels=c('A', 'B'), label_size=8, hjust=-1, vjust= 6, ncol=2, nrow=1)
+
+site.plots2<-plot_grid(KP.map, RK.map, 
+          labels=c('C', 'D'), label_size=8, hjust=-1, vjust= 6, ncol=2, nrow=1)
+
+site.compiled<-plot_grid(site.plots1, site.plots2, 
+          ncol=1, nrow=2)
+
 
 ### export it
 pdf(file= "figures/Fig 1.sitemaps.pdf", height=5, width=8)
-site.plots
+site.compiled
 dev.off()
 
 ```
@@ -277,17 +283,18 @@ Ndfa$d15N.Rub<-Ndfa$d15N
 Ndfa$d15N.Koa<-Ndfa$mean.d15N.Ndfa
 
 ####################
-## analysis of covariance
+## analysis of variance
 Ndfa.mod1<-lm(d15N.Rub~d15N.Koa*Plot, data=Ndfa) # full model
 Ndfa.mod2<-lm(d15N.Rub~d15N.Koa + Plot, data=Ndfa) # main effects only
 
 anova(Ndfa.mod1, Ndfa.mod2) # effects not different among plots
 
-Anova(Ndfa.mod1)
-plot(allEffects(Ndfa.mod1), par.strip.text=list(cex=0.6))
+Anova(Ndfa.mod2, type=2)
+plot(allEffects(Ndfa.mod2), par.strip.text=list(cex=0.6))
 
 #################### relationship between koa and rubus d15N?
 # Yes, but a bit stronger in the RK site
+
 mod.KP<-lm(Ndfa[(Ndfa$Plot=="KP"),]$d15N.Rub~Ndfa[(Ndfa$Plot=="KP"),]$d15N.Koa); anova(mod.KP)
 summary(mod.KP)
 int.rubKP<-coef(summary(mod.KP))[1] #intercept
@@ -506,10 +513,21 @@ Run statistics on the responses (dd15N, 13C, tissue C and N)
 ```{r, stats on responses, results='hide', fig.show='hide'}
 
 # models
+
+# make a factor for "plants" or "soil"
+HAK.data<-HAK.data %>%
+  mutate(Soil.or.plant = ifelse(Sample=="Soil", "Soil", "Plants"))
+
+HAK.data<-HAK.data %>%
+  mutate(Sample.Type = ifelse(Sample=="Koa", "Koa",
+                             ifelse(Sample=="Soil", "Soil",
+                                    "Rubus spp")))
+
+
 ## tests for assumptions
 for(i in c(6:12)){
   Y<-HAK.data[,i]
-  full<-lm(Y~Plot+Sample, data=HAK.data, na.action=na.exclude)
+  full<-lm(Y~Sample.Type*Plot, data=HAK.data, na.action=na.exclude)
   R <- resid(full) #save glm residuals
  
   op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
@@ -522,50 +540,29 @@ for(i in c(6:12)){
 }
 
 ########## Separate dataframes
-# make a factor for "plants" or "soil"
-HAK.data<-HAK.data %>%
-  mutate(Sample.Type = ifelse(Sample=="Soil", "Soil", "Plants"))
-
-#all plants
-plants<-HAK.data[(HAK.data$Sample.Type=="Plants"),]
-
-# make level to contrast Koa vs Rubus spp
-plants<-plants %>%
-  mutate(Plant.Type = ifelse(Sample=="Koa", "Koa", "Rubus spp"))
-
-#only Koa
-Koa<-HAK.data[(HAK.data$Sample=="Koa"),]
-
-#only Rubus
-Rubus<-HAK.data[(HAK.data$Sample=="RUBARG" | HAK.data$Sample=="RUBHAW"),]
-
 # only KP (or RK) and only plants in those sites
-KP.df<-HAK.data[(HAK.data$Plot=="KP"),]; KP.df.plants<-KP.df[(KP.df$Sample.Type=="Plants"),]
-RK.df<-HAK.data[(HAK.data$Plot=="RK"),]; RK.df.plants<-RK.df[(RK.df$Sample.Type=="Plants"),]
+KP.df<-HAK.data[(HAK.data$Plot=="KP"),]; KP.df.plants<-KP.df[(KP.df$Soil.or.plant=="Plants"),]
+RK.df<-HAK.data[(HAK.data$Plot=="RK"),]; RK.df.plants<-RK.df[(RK.df$Soil.or.plant=="Plants"),]
 
 ```
   
 **d15N models**
 ```{r, d15N, fig.show='hide'}
 ######## Nitrogen isotopes
-d15N.plants<-lm(d15N~Plot, data=plants); anova(d15N.plants) # plants signif.
-plot(allEffects(d15N.plants))
+d15N.mod<-lm(d15N~Sample.Type*Plot, data=HAK.data); anova(d15N.mod) # plants Type and Plot signif.
+plot(allEffects(d15N.mod))
 
-d15N.Koa<-lm(d15N~Plot, data=Koa); anova(d15N.Koa) # Koa signif.
-plot(allEffects(d15N.Koa))
+Anova(d15N.mod, Type=3)
+posthoc<-emmeans(d15N.mod, ~Plot|Sample.Type)
+pairs(posthoc)
+multcomp::cld(posthoc, Letters=letters)
 
-d15N.Rubus<-lm(d15N~Plot, data=Rubus); anova(d15N.Rubus) # Rubus signif.
-plot(allEffects(d15N.Rubus))
+# Rubus vs. koa in each forest, plants only
+d15N.mod.KP<-lm(d15N~Sample.Type, data=KP.df.plants); anova(d15N.mod.KP) # Rubus and Koa diff signif.
+plot(allEffects(d15N.mod.KP))
 
-# only in KP
-# only comparing the 2 plant species 
-d15N.KP<-lm(d15N~Sample, data=KP.df.plants); anova(d15N.KP) #only koa vs. rubus comparision, signif.
-plot(allEffects(d15N.KP)) 
-
-# only in RK
-# only comparing the 2 plant species 
-d15N.RK<-lm(d15N~Sample, data=RK.df.plants); anova(d15N.RK) #only koa vs. rubus comparision, signif.
-plot(allEffects(d15N.RK))
+d15N.mod.RK<-lm(d15N~Sample.Type, data=RK.df.plants); anova(d15N.mod.RK) # Rubus and Koa diff signif.
+plot(allEffects(d15N.mod.RK))
 
 ```
   
@@ -573,79 +570,71 @@ plot(allEffects(d15N.RK))
 ```{r, d13C, fig.show='hide'}
 ######## ######## 
 ######## Carbon isotopes
-d13C.plants<-lm(d13C~Plot, data=plants); anova(d13C.plants) # plants signif.
-plot(allEffects(d13C.plants))
+d13C.mod<-lm(d13C~Sample.Type*Plot, data=HAK.data); anova(d13C.mod) # plants signif.
+plot(allEffects(d13C.mod))
 
-d13C.Koa<-lm(d13C~Plot, data=Koa); anova(d13C.Koa) # Koa signif.
-plot(allEffects(d13C.Koa))
+Anova(d13C.mod, Type=3)
+posthoc<-emmeans(d13C.mod, ~Plot|Sample.Type)
+pairs(posthoc)
+multcomp::cld(posthoc, Letters=letters)
 
-d13C.Rubus<-lm(d13C~Plot, data=Rubus); anova(d13C.Rubus) # Rubus signif.
-plot(allEffects(d13C.Rubus))
+# Rubus vs. koa in each forest, plants only
+d13C.mod.KP<-lm(d13C~Sample.Type, data=KP.df.plants); anova(d13C.mod.KP) # Rubus and Koa NOT diff
+plot(allEffects(d13C.mod.KP))
 
-d13C.KP<-lm(d13C~Sample, data=KP.df.plants); anova(d13C.KP) #only koa vs. rubus comparision
-plot(allEffects(d13C.KP))
-
-d13C.RK<-lm(d13C~Sample, data=RK.df.plants); anova(d13C.RK) #only koa vs. rubus comparision
-plot(allEffects(d13C.RK))
-
-
+d13C.mod.RK<-lm(d13C~Sample.Type, data=RK.df.plants); anova(d13C.mod.RK) # Rubus and Koa NOT diff
+plot(allEffects(d13C.mod.RK))
 ```
  
 **Nitrogen content models**
 ```{r, N content, fig.show='hide'}
 ####### Nitrogen content
-TN.plants<-lm(Total.N..mmol.gdw~Plot, data=plants); anova(TN.plants) # plants not signif by plot
-plot(allEffects(TN.plants))
+TN.mod<-lm(Total.N..mmol.gdw~Sample.Type*Plot, data=HAK.data); anova(TN.mod) # plants signif.
+plot(allEffects(TN.mod))
 
-TN.Koa<-lm(Total.N..mmol.gdw~Plot, data=Koa); anova(TN.Koa) # Koa not signif by plot
-plot(allEffects(TN.Koa))
+Anova(TN.mod, Type=3)
+posthoc<-emmeans(TN.mod, ~Sample.Type)
+multcomp::cld(posthoc, Letters=letters)
 
-TN.Rubus<-lm(Total.N..mmol.gdw~Plot, data=Rubus); anova(TN.Rubus) # Rubus trend by plot
-plot(allEffects(TN.Rubus))
+# Rubus vs. koa in each forest, plants only
+TN.mod.KP<-lm(Total.N..mmol.gdw~Sample.Type, data=KP.df.plants); anova(TN.mod.KP) # Rubus and Koa diff
+plot(allEffects(TN.mod.KP))
 
-N.KP<-lm(Total.N..mmol.gdw~Sample, data=KP.df.plants); anova(N.KP) #only koa vs. rubus comparision, signif.
-plot(allEffects(N.KP)) 
-
-N.RK<-lm(Total.N..mmol.gdw~Sample, data=RK.df.plants); anova(N.RK) #only koa vs. rubus comparision, signif.
-plot(allEffects(N.RK))
-
+TN.mod.RK<-lm(Total.N..mmol.gdw~Sample.Type, data=RK.df.plants); anova(TN.mod.RK) # Rubus and Koa almost diff
+plot(allEffects(TN.mod.RK))
 ```
  
 **Carbon content models**
 ```{r, C content, fig.show='hide'}
 ######## ######## 
 ######## Carbon content
-TC.plants<-lm(Total.C..mmol.gdw~Plot, data=plants); anova(TC.plants) # plants signif.
-plot(allEffects(TC.plants))
+TC.mod<-lm(Total.C..mmol.gdw~Sample.Type*Plot, data=HAK.data); anova(TC.mod) # plants signif.
+plot(allEffects(TC.mod))
 
-TC.Koa<-lm(Total.C..mmol.gdw~Plot, data=Koa); anova(TC.Koa) # Koa signif.
-plot(allEffects(TC.Koa))
+Anova(TC.mod, Type=3)
+posthoc<-emmeans(TC.mod, ~Plot|Sample.Type)
+pairs(posthoc)
+multcomp::cld(posthoc, Letters=letters)
 
-TC.Rubus<-lm(Total.C..mmol.gdw~Plot, data=Rubus); anova(TC.Rubus) # Rubus signif.
-plot(allEffects(TC.Rubus))
+# Rubus vs. koa in each forest, plants only
+TC.mod.KP<-lm(Total.C..mmol.gdw~Sample.Type, data=KP.df.plants); anova(TC.mod.KP) # Rubus and Koa NOT diff
+plot(allEffects(TC.mod.KP))
 
-C.KP<-lm(Total.C..mmol.gdw~Sample, data=KP.df.plants); anova(C.KP) #only koa vs. rubus comparision, signif.
-plot(allEffects(C.KP)) 
-
-C.RK<-lm(Total.C..mmol.gdw~Sample, data=RK.df.plants); anova(C.RK) #only koa vs. rubus comparision, signif.
-plot(allEffects(C.RK))
+TC.mod.RK<-lm(Total.C..mmol.gdw~Sample.Type, data=RK.df.plants); anova(TC.mod.RK) # Rubus and Koa NOT diff
+plot(allEffects(TC.mod.RK))
 
 ```
   
 **C:N models**
 ```{r, CN values, fig.show='hide'}
 ####### C:N content
-CN.plants<-lm(C.N~Plot, data=plants); anova(CN.plants) # not signif.
+CN.mod<-lm(C.N~Sample.Type*Plot, data=HAK.data); anova(CN.mod) # plants signif.
+plot(allEffects(TC.mod))
 
-CN.Koa<-lm(C.N~Plot, data=Koa); anova(CN.Koa) # not signif.
-
-CN.Rubus<-lm(C.N~Plot, data=Rubus); anova(CN.Rubus) # not signif
-
-CN.KP<-lm(C.N~Sample, data=KP.df.plants); anova(CN.KP) #only koa vs. rubus comparision, signif.
-plot(allEffects(CN.KP)) 
-
-CN.RK<-lm(C.N~Sample, data=RK.df.plants); anova(CN.RK) #only koa vs. rubus comparision, not signif
-plot(allEffects(CN.RK))
+Anova(CN.mod, Type=3)
+posthoc<-emmeans(CN.mod, ~Sample.Type)
+pairs(posthoc)
+multcomp::cld(posthoc, Letters=letters)
 
 ```
 
