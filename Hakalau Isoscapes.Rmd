@@ -20,7 +20,7 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
 
 # load packages
-pacman::p_load("RgoogleMaps", "SDMTools", "car", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats", "RColorBrewer", "grid", "ggsn", "sf")
+pacman::p_load("RgoogleMaps", "SDMTools", "car", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats", "RColorBrewer", "grid", "ggsn", "sf", "pgirmess")
 
 ```
 
@@ -178,6 +178,8 @@ dev.off()
 - data mutating  
 ```{r, HKP data, fig.show=FALSE}
 HAK.df<-read.csv("data/Hakalau.rawdata.csv")
+cols<-c("Plot", "Sample", "ID") # columns to make factors
+HAK.df[cols] <- lapply(HAK.df[cols], factor) # make all these factors
 
 ########## DBH 
 DBH.df<- HAK.df %>%
@@ -285,12 +287,9 @@ Ndfa$d15N.Koa<-Ndfa$mean.d15N.Ndfa
 ####################
 ## analysis of variance
 Ndfa.mod1<-lm(d15N.Rub~d15N.Koa*Plot, data=Ndfa) # full model
-Ndfa.mod2<-lm(d15N.Rub~d15N.Koa + Plot, data=Ndfa) # main effects only
 
-anova(Ndfa.mod1, Ndfa.mod2) # effects not different among plots
-
-Anova(Ndfa.mod2, type=2)
-plot(allEffects(Ndfa.mod2), par.strip.text=list(cex=0.6))
+Anova(Ndfa.mod1, type=2)
+plot(allEffects(Ndfa.mod1), par.strip.text=list(cex=0.6))
 
 #################### relationship between koa and rubus d15N?
 # Yes, but a bit stronger in the RK site
@@ -354,78 +353,12 @@ With Plot being most important effect, divide DBH and Canopy to be plot mean +/-
 - greater DBH (KP), trend for greater Canopy (RK)  
   
 ```{r DBH and Canopy, fig.show='hide'}
-## Models
-mod.DBH<-lm(DBH.Total~Plot, data=HAK.data); anova(mod.DBH) # signif
-mod.Can<-lm(Canopy.area~Plot, data=HAK.data); anova(mod.Can) # not signif, a bit wobbly in assumptions
-
-# diagnostic plots
-for(i in c(4:5)){
-  Y<-HAK.data[,i]
-  full<-lm(Y~Plot, data=HAK.data, na.action=na.exclude)
-  R <- resid(full) #save glm residuals
-  op<-par(mfrow = c(2,3), mar=c(5,4,1,2), pty="sq")
-  plot(full, add.smooth = FALSE, which=1)
-  QQ <- qqnorm(R, main = colnames(HAK.data)[i]) 
-  QQline <- qqline(R)
-  hist(R, xlab="Residuals", main = colnames(HAK.data)[i])
-  plot(HAK.data$Plot, R, xlab=colnames(HAK.data)[i], ylab="Residuals")
-}
-
 # Mann-Whitney U-Test
 mwu(HAK.data, DBH.Total, Plot) # signif
 mwu(HAK.data, Canopy.area, Plot) # not
 ```
 
-```{r mean plots for DBH and Canopy, Fig.cap="Supplementary Figure 1. Mean +/- SE diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center', results='hide', eval=FALSE}
-#### plots
-DBH.m<-aggregate(DBH.Total~Plot, data=HAK.data, mean)
-Can.m<-aggregate(Canopy.area~Plot, data=HAK.data, mean)
-canopy.mean<-aggregate(Canopy.area~Plot, data=HAK.data, sum) 
-
-DBH.SE<-aggregate(DBH.Total~Plot, data=HAK.data, std.error)
-Can.SE<-aggregate(Canopy.area~Plot, data=HAK.data, std.error)
-
-DBH.n<-aggregate(DBH.Total~Plot, data=HAK.data, length)
-Can.n<-aggregate(Canopy.area~Plot, data=HAK.data, length)
-
-mean.eco<-cbind(DBH.m, Can.m[2], DBH.SE[2], Can.SE[2]); colnames(mean.eco)<-c("Plot", "DBH", "Can", "D.SE", "C.SE")
-
-pd <- position_dodge(0.7) #offset for error bars
-
-BW.back2<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-panel.background = element_blank(), axis.line = element_line(colour = "black", size=0.4))
-
-### DBH plot of mean/SE by plot
-DBH.plot<-ggplot(data=mean.eco, aes(x=Plot, y=DBH))+
-  geom_bar(stat="identity", position = pd, width=0.7, fill="gray70")+
-  geom_errorbar(aes(ymin=DBH-D.SE, ymax=DBH+D.SE), size=.5, width=0, position=pd) +
-  xlab("Plots") +
-  ylab("dbh (cm)") + 
-  theme(legend.title = element_blank(),
-        axis.text=element_text(size=6),
-        axis.title=element_text(size=8))+
-  annotate(geom="text", x=1.5, y=35, label=expression(paste(bold("*"))), size=4) +
-  BW.back2
-
-### Canopy plot of mean/SE by plot
-Canopy.plot<-ggplot(data=mean.eco, aes(x=Plot, y=Can))+
-  geom_bar(stat="identity", position = pd, width=0.7, fill="gray70")+
-  geom_errorbar(aes(ymin=Can-C.SE, ymax=Can+C.SE), size=.5, width=0, position=pd) +
-  xlab("Plots") +
-  ylab(expression(paste("Canopy (m"^2,")"))) + 
-  theme(legend.title = element_blank(),
-        axis.text=element_text(size=6),
-        axis.title=element_text(size=8))+
-  BW.back2
-
-#  figures together
-plot_grid(DBH.plot, Canopy.plot,
-     labels=c('A', 'B'), label_size=8, hjust=-1, vjust= 3, ncol=2, nrow=1)
-dev.copy(pdf, "figures/FigS1x.DBHCanopy.pdf", width=4, height=3.5, encod="MacRoman")
-dev.off()
-```
-
-
+box-plot scatter for DBH and Canopy area
 ```{r DBH and Canopy scatter, Fig.cap="Supplementary Figure 1.  Multi-trunk and individual diameter at breast height (DBH) and *A. koa* canopy area for two afforested and remnant forest plots.", fig.align='center', results='hide'}
 ##### alternative plots
 
@@ -467,7 +400,6 @@ dev.copy(pdf, "figures/FigS1.DBHCanopy.pdf", width=6, height=3.5, encod="MacRoma
 dev.off()
 ```
 
-
 ```{r DBH based age, Fig.cap="Supplementary Figure x. DBH-estimates of *A. koa* age in afforested and remnant forest plots.", fig.align='center', results='hide'}
 ###################### age
 # approx age
@@ -503,10 +435,6 @@ age.m<-aggregate(alt.age~Plot, data=HAK.data, mean)
 age.sd<-aggregate(alt.age~Plot, data=HAK.data, sd)
 age.n<-aggregate(alt.age~Plot, data=HAK.data, length)
 
-
-
-# Mann-Whitney U-Test
-mwu(HAK.data, alt.age, Plot) # signif, p=0.010
 ```
   
 Run statistics on the responses (dd15N, 13C, tissue C and N)
@@ -523,6 +451,9 @@ HAK.data<-HAK.data %>%
                              ifelse(Sample=="Soil", "Soil",
                                     "Rubus spp")))
 
+HAK.data$Soil.or.plant<-as.factor(HAK.data$Soil.or.plant)
+HAK.data$Sample.Type<-as.factor(HAK.data$Sample.Type)
+
 
 ## tests for assumptions
 for(i in c(6:12)){
@@ -536,7 +467,7 @@ for(i in c(6:12)){
   QQline <- qqline(R)
   hist(R, xlab="Residuals", main = colnames(HAK.data)[i])
   plot(HAK.data$Plot, R, xlab=colnames(HAK.data)[i], ylab="Residuals")
-  plot(HAK.data$Sample, R, xlab=colnames(HAK.data)[i], ylab="Residuals")
+  plot(HAK.data$Sample.Type, R, xlab=colnames(HAK.data)[i], ylab="Residuals")
 }
 
 ########## Separate dataframes
@@ -552,7 +483,8 @@ RK.df<-HAK.data[(HAK.data$Plot=="RK"),]; RK.df.plants<-RK.df[(RK.df$Soil.or.plan
 d15N.mod<-lm(d15N~Sample.Type*Plot, data=HAK.data); anova(d15N.mod) # plants Type and Plot signif.
 plot(allEffects(d15N.mod))
 
-Anova(d15N.mod, Type=3)
+# no interaction
+Anova(d15N.mod1, type=2)
 posthoc<-emmeans(d15N.mod, ~Plot|Sample.Type)
 pairs(posthoc)
 multcomp::cld(posthoc, Letters=letters)
@@ -571,9 +503,9 @@ plot(allEffects(d15N.mod.RK))
 ######## ######## 
 ######## Carbon isotopes
 d13C.mod<-lm(d13C~Sample.Type*Plot, data=HAK.data); anova(d13C.mod) # plants signif.
-plot(allEffects(d13C.mod))
 
-Anova(d13C.mod, Type=3)
+# no interaction
+Anova(d13C.mod, type=2)
 posthoc<-emmeans(d13C.mod, ~Plot|Sample.Type)
 pairs(posthoc)
 multcomp::cld(posthoc, Letters=letters)
@@ -592,7 +524,7 @@ plot(allEffects(d13C.mod.RK))
 TN.mod<-lm(Total.N..mmol.gdw~Sample.Type*Plot, data=HAK.data); anova(TN.mod) # plants signif.
 plot(allEffects(TN.mod))
 
-Anova(TN.mod, Type=3)
+Anova(TN.mod, Type=2)
 posthoc<-emmeans(TN.mod, ~Sample.Type)
 multcomp::cld(posthoc, Letters=letters)
 
@@ -611,7 +543,7 @@ plot(allEffects(TN.mod.RK))
 TC.mod<-lm(Total.C..mmol.gdw~Sample.Type*Plot, data=HAK.data); anova(TC.mod) # plants signif.
 plot(allEffects(TC.mod))
 
-Anova(TC.mod, Type=3)
+Anova(TC.mod, Type=2)
 posthoc<-emmeans(TC.mod, ~Plot|Sample.Type)
 pairs(posthoc)
 multcomp::cld(posthoc, Letters=letters)
@@ -631,7 +563,7 @@ plot(allEffects(TC.mod.RK))
 CN.mod<-lm(C.N~Sample.Type*Plot, data=HAK.data); anova(CN.mod) # plants signif.
 plot(allEffects(TC.mod))
 
-Anova(CN.mod, Type=3)
+Anova(CN.mod, Type=2)
 posthoc<-emmeans(CN.mod, ~Sample.Type)
 pairs(posthoc)
 multcomp::cld(posthoc, Letters=letters)
@@ -762,8 +694,6 @@ setup
 ```{r, krig d15N, message=FALSE, results='hide', fig.show='hide'}
 ################# d15N krigs
 ################# make site maps based on bubble plots
-set.seed(100)
-
 # just KP site
 krig.KP<- scape.data %>% filter(Plot=="KP")
 krig.KP$Sample<-droplevels(krig.KP$Sample)
@@ -785,8 +715,6 @@ RK.map<-krig.RK %>% as.data.frame %>%
   ggtitle("RK plot--d15N (permil)") + coord_equal() + theme_bw()
 
 plot_grid(RK.map, KP.map, ncol=2, nrow=1)
-dev.copy(pdf, "figures/notused/dot.scape.pdf", width=9, height=4, encod="MacRoman")
-dev.off()
 
 #####################
 #####################
@@ -818,12 +746,34 @@ krig.KP@bbox<-bbox(S) # expanded binding box for data
 Grid.KP@bbox<-bbox(S) # expand for plot corner
 
 # autokrige
+set.seed(100)
 d15N.KP.auto <- autoKrige(d15N ~ 1, krig.KP, Grid.KP) # ordinary kriging
 plot(d15N.KP.auto, sp.layout = list(pts = list("sp.points", krig.KP)))
 dev.copy(pdf, "figures/notused/KP_15N_pooled_variogram.pdf", width=9, height=5, encod="MacRoman")
 dev.off()
-
 #d15N.KP.auto$krige_output
+
+#####
+# Moran's I for autocorrelation
+coord.pool.KP<-cbind(krig.KP$x.matrix, krig.KP$y.matrix)
+res.pool.KP.N<-as.data.frame(correlog(coord.pool.KP, krig.KP$d15N, method="Moran"))
+
+moran.pool.KP.d15N<-ggplot(res.pool.KP.N, aes(x=dist.class, y=coef)) +
+  geom_smooth() +
+  geom_point(size=2, pch=21) +
+  ggtitle("KP: Soil+foliar d15N") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
+
+####### other approach for Moran
+
+nb<-tri2nb(coord.pool.KP,row.names=NULL)
+moran.test(krig.KP$d15N, nb2listw(nb))
+
+d15N.kp.spline<- spline.correlog(x=krig.KP$x.matrix, y=krig.KP$y.matrix,
+                         z=krig.KP$d15N, resamp=100, xmax=10)
+plot(d15N.kp.spline,text=TRUE)
+
 
 # make to dataframes for lm, combine
 KP.pred.N <- d15N.KP.auto[1] %>% as.data.frame() # model predictions
@@ -876,7 +826,6 @@ Remnant Forest (RK) pooled δ^15^N isoscape
 krig.RK<- scape.data %>% filter(Plot=="RK")
 krig.RK$Sample<-droplevels(krig.RK$Sample)
 
-
 coordinates(krig.RK)<- ~x.meter + y.meter
 
 Columns=seq(from=-1, to=21, by=0.05)
@@ -901,11 +850,32 @@ Grid.RK@bbox<-bbox(S) # expand for plot corner
 # The sill is the total variance contribution, or the maximum variability between pairs of points. 
 
 # increasing the range gave better fit than auto
-d15N.RK.auto <- autoKrige(d15N ~ 1, krig.RK, Grid.RK, fix.value=c(NA, 2, NA)) # ordinary kriging
+setseed(100)
+d15N.RK.auto <- autoKrige(d15N ~ 1, krig.RK, Grid.RK)# fix.value=c(NA, 2, NA)) # ordinary kriging
 plot(d15N.RK.auto, sp.layout = list(pts = list("sp.points", krig.RK)))
 dev.copy(pdf, "figures/notused/RK_15N_pooled_variogram.pdf", width=9, height=5, encod="MacRoman")
 dev.off()
 #d15N.RK.auto$krige_output
+
+# Moran's I for autocorrelation
+coord.pool.RK<-cbind(krig.RK$x.matrix, krig.RK$y.matrix)
+res.pool.RK.N<-as.data.frame(correlog(coord.pool.RK, krig.RK$d15N, method="Moran"))
+
+moran.pool.RK.d15N<-ggplot(res.pool.RK.N, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("RK: Soil+foliar d15N") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
+
+####### other approach
+nb<-tri2nb(coord.pool.RK,row.names=NULL)
+moran.test(krig.RK$d15N, nb2listw(nb))
+
+d15N.rk.spline<- spline.correlog(x=krig.RK$x.matrix, y=krig.RK$y.matrix,
+                         z=krig.RK$d15N, resamp=100, xmax=10)
+plot(d15N.rk.spline, text=TRUE)
+#####
 
 # make to dataframes for lm, combine
 RK.pred.N <- d15N.RK.auto[1] %>% as.data.frame() # model predictions
@@ -976,8 +946,26 @@ d13C.KP.auto <- autoKrige(d13C ~ 1, krig.KP, Grid.KP) # ordinary kriging
 plot(d13C.KP.auto, sp.layout = list(pts = list("sp.points", krig.KP)))
 dev.copy(pdf, "figures/notused/KP_13C_pooled_variogram.pdf", width=9, height=5, encod="MacRoman")
 dev.off()
-
 #d13C.KP.auto$krige_output
+
+# Moran's I for autocorrelation
+res.pool.KP.C<-as.data.frame(correlog(coord.pool.KP, krig.KP$d13C, method="Moran"))
+
+moran.pool.KP.d13C<-ggplot(res.pool.KP.C, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("KP: Soil+foliar d13C") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
+
+####### other approach
+nb<-tri2nb(coord.pool.KP,row.names=NULL)
+moran.test(krig.KP$d13C, nb2listw(nb))
+
+d13C.kp.spline<- spline.correlog(x=krig.KP$x.matrix, y=krig.KP$y.matrix,
+                         z=krig.KP$d13C, resamp=100, xmax=10)
+plot(d13C.kp.spline, text=TRUE)
+#####
 
 # make to dataframes for lm, combine
 KP.pred.C <- d13C.KP.auto[1] %>% as.data.frame() # model predictions
@@ -1032,6 +1020,17 @@ dev.copy(pdf, "figures/notused/RK_13C_pooled_variogram.pdf", width=9, height=5, 
 dev.off()
 
 #d13C.RK.auto$krige_output
+
+# Moran's I for autocorrelation
+res.pool.RK.C<-as.data.frame(correlog(coord.pool.RK, krig.RK$d13C, method="Moran"))
+
+moran.pool.RK.d13C<-ggplot(res.pool.RK.C, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("RK: Soil+foliar d13C") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
+
 
 # make to dataframes for lm, combine
 RK.pred.C <- d13C.RK.auto[1] %>% as.data.frame() # model predictions
@@ -1097,6 +1096,7 @@ pred.dat.N %>%
   summarise(no_rows = length(Plot))
 
 #man whitney for significance (not normal data)
+# POOLED SAMPLE N
 mwu(pred.dat.N, d15N.pred, Plot) # signif difference in predictions (p<0.001)
 
 # Density plot
@@ -1138,6 +1138,7 @@ pred.dat.C %>%
   summarise(no_rows = length(Plot))
 
 #man whitney for significance (not normal data)
+# POOLED sample C
 mwu(pred.dat.C, d13C.pred, Plot) # signif difference in predictions (p<0.001)
 
 # Density plot
@@ -1212,6 +1213,17 @@ dev.off()
 
 #d15N.KP.soil$krige_output
 
+# Moran's I for autocorrelation
+coord.soil.KP<-cbind(KP.soil$x.matrix, KP.soil$y.matrix)
+res.soil.KP.N<-as.data.frame(correlog(coord.soil.KP, KP.soil$d15N, method="Moran"))
+
+moran.soil.KP.d15N<-ggplot(res.soil.KP.N, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("KP: Soil d15N") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
+
 # make to dataframes for lm, combine
 KP.soil.pred.N <- d15N.KP.soil[1] %>% as.data.frame() # model predictions
 KP.soil.df.N <- KP.soil %>% as.data.frame() # dataframe
@@ -1271,11 +1283,22 @@ RK.soil@bbox<-bbox(S) # expanded binding box for data
 Grid.RK@bbox<-bbox(S) # expand for plot corner
 
 # autokrige with nugget, range and sill 
-d15N.RK.soil <- autoKrige(d15N ~ 1, RK.soil, fix.values = c(0,NA,1.2), Grid.RK) # ordinary kriging
+d15N.RK.soil <- autoKrige(d15N ~ 1, RK.soil, Grid.RK, fix.values = c(0,3,1)) # ordinary kriging
 plot(d15N.RK.soil, sp.layout = list(pts = list("sp.points", RK.soil)))
 dev.copy(pdf, "figures/notused/RK_15N_soil_variogram.pdf", width=9, height=5, encod="MacRoman")
 dev.off()
 #d15N.RK.soil$krige_output
+
+# Moran's I for autocorrelation
+coord.soil.RK<-cbind(RK.soil$x.matrix, RK.soil$y.matrix)
+res.soil.RK.N<-as.data.frame(correlog(coord.soil.RK, RK.soil$d15N, method="Moran"))
+
+moran.soil.RK.d15N<-ggplot(res.soil.RK.N, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("RK: Soil d15N") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
 
 # make to dataframes for lm, combine
 RK.soil.pred.N <- d15N.RK.soil[1] %>% as.data.frame() # model predictions
@@ -1322,12 +1345,22 @@ soil isotopes, first the restored site then the remnant site
 ```{r, soil isotope krigs, message=FALSE, results='hide'}
 ###### KP site d13C
 
-# autokrige
+# # autokrige with nugget, range and sill 
 d13C.KP.soil <- autoKrige(d13C ~ 1, KP.soil, Grid.KP) # ordinary kriging
 plot(d13C.KP.soil, sp.layout = list(pts = list("sp.points", KP.soil)))
 dev.copy(pdf, "figures/notused/KP_13C_soil_variogram.pdf", width=9, height=5, encod="MacRoman")
 dev.off()
 #d13C.KP.soil$krige_output
+
+# Moran's I for autocorrelation
+res.soil.KP.C<-as.data.frame(correlog(coord.soil.KP, KP.soil$d13C, method="Moran"))
+
+moran.soil.KP.d13C<-ggplot(res.soil.KP.C, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("KP: Soil d13C") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
 
 # make to dataframes for lm, combine
 KP.soil.pred.C <- d13C.KP.soil[1] %>% as.data.frame() # model predictions
@@ -1366,12 +1399,22 @@ plotd13C.krig.KP.soil<-spplot(d13C.KP.soil$krige_output["var1.pred"], col.region
 # RK Site Krig
 ###########################
 
-# autokrige
-d13C.RK.soil <- autoKrige(d13C ~ 1, RK.soil, Grid.RK) # ordinary kriging
+# # autokrige with nugget, range and sill 
+d13C.RK.soil <- autoKrige(d13C ~ 1, RK.soil, Grid.RK, fix.values = c(0,3,0.8)) # ordinary kriging
 plot(d13C.RK.soil, sp.layout = list(pts = list("sp.points", RK.soil)))
 dev.copy(pdf, "figures/notused/RK_13C_soil_variogram.pdf", width=9, height=5, encod="MacRoman")
 dev.off()
 #d13C.RK.soil$krige_output
+
+# Moran's I for autocorrelation
+res.soil.RK.C<-as.data.frame(correlog(coord.soil.RK, RK.soil$d13C, method="Moran"))
+
+moran.soil.RK.d13C<-ggplot(res.soil.RK.C, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("RK: Soil d13C") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
 
 # make to dataframes for lm, combine
 RK.soil.pred.C <- d13C.RK.soil[1] %>% as.data.frame() # model predictions
@@ -1441,7 +1484,7 @@ pred.soil.N %>%
 #man whitney for significance (not normal data)
 mwu(pred.soil.N, d15N.pred, Plot) # signif difference in predictions (p<0.001)
 
-# Density plot
+# Density plot SOIL
 # plot.means
 predict.mean.N <- ddply(pred.soil.N, "Plot", summarise, grp.mean=mean(d15N.pred, na.rm=TRUE))
 predict.sd.N <- ddply(pred.soil.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
@@ -1473,6 +1516,7 @@ pred.soil.C %>%
   summarise(no_rows = length(Plot))
 
 #man whitney for significance (not normal data)
+# SOIL C
 mwu(pred.soil.C, d13C.pred, Plot) # signif difference in predictions (p<0.001)
 
 # Density plot
@@ -1542,6 +1586,17 @@ dev.copy(pdf, "figures/notused/KP_15N_foliar_variogram.pdf", width=9, height=5, 
 dev.off()
 #d15N.KP.plants$krige_output
 
+# Moran's I for autocorrelation
+coord.plants.KP<-cbind(KP.plants$x.matrix, KP.plants$y.matrix)
+res.plants.KP<-as.data.frame(correlog(coord.plants.KP, KP.plants$d15N, method="Moran"))
+
+moran.plants.KP.d15N<-ggplot(res.plants.KP, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("KP: Foliar d15N") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
+
 # make to dataframes for lm, combine
 KP.plants.pred.N <- d15N.KP.plants[1] %>% as.data.frame() # model predictions
 KP.plants.df.N <- KP.plants %>% as.data.frame() # dataframe
@@ -1602,11 +1657,22 @@ RK.plants@bbox<-bbox(S) # expanded binding box for data
 Grid.RK@bbox<-bbox(S) # expand for plot corner
 
 # autokrige
-d15N.RK.plants <- autoKrige(d15N ~ 1, RK.plants, Grid.RK) # ordinary kriging
+d15N.RK.plants <- autoKrige(d15N ~ 1, RK.plants, Grid.RK, fix.values = c(NA, 5, NA)) # ordinary kriging
 plot(d15N.RK.plants, sp.layout = list(pts = list("sp.points", RK.plants)))
 dev.copy(pdf, "figures/notused/RK_15N_foliar_variogram.pdf", width=9, height=5, encod="MacRoman")
 dev.off()
 #d15N.RK.plants$krige_output
+
+# Moran's I for autocorrelation
+coord.plants.RK<-cbind(RK.plants$x.matrix, RK.plants$y.matrix)
+res.plants.RK.N<-as.data.frame(correlog(coord.plants.RK, RK.plants$d15N, method="Moran"))
+
+moran.plants.RK.d15N<-ggplot(res.plants.RK.N, aes(x=dist.class, y=coef))+
+  geom_point(size=2, pch=16) +
+  geom_smooth(method=loess, alpha=0.1) +
+  ggtitle("RK: Foliar d15N") +
+  geom_hline(yintercept=0, linetype="longdash", color = "gray") + 
+  theme_classic()
 
 # make to dataframes for lm, combine
 RK.plants.pred.N <- d15N.RK.plants[1] %>% as.data.frame() # model predictions
@@ -1669,6 +1735,7 @@ pred.plants.N %>%
   summarise(no_rows = length(Plot))
 
 #man whitney for significance (not normal data)
+# PLANT N
 mwu(pred.plants.N, d15N.pred, Plot) # signif difference in predictions (p<0.001)
 
 ### Density plot
