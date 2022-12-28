@@ -20,7 +20,7 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE, fig.align='center')
 if (!require("pacman")) install.packages("pacman"); library(pacman) # for rapid install if not in library
 
 # load packages
-pacman::p_load("RgoogleMaps", "SDMTools", "car", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats", "RColorBrewer", "grid", "ggsn", "sf", "pgirmess")
+pacman::p_load("RgoogleMaps", "SDMTools", "car", "rgdal", "ggmap", "gridExtra", "automap", "cowplot","sp", "gstat", "plotrix", "dplyr", "ggplot2", "scales","magrittr","plyr","effects", "ggpubr", "sjstats", "RColorBrewer", "grid", "ggsn", "sf", "pgirmess","spdep", "ncf")
 
 ```
 
@@ -214,7 +214,7 @@ single.dbh.sd<-aggregate(dbh~Plot, data=box.DBH, sd) # 8.4 (KP), 14.2 (RK)
 
 indiv.trunk.dbh   
 
-dev.copy(pdf, "figures/indiv.trunk.dbh.pdf", width=4, height=4, encod="MacRoman")
+dev.copy(pdf, "figures/notused/indiv.trunk.dbh.pdf", width=4, height=4, encod="MacRoman")
 dev.off()
 
 #################
@@ -427,7 +427,7 @@ multi.trunk.altage<-ggplot(HAK.data, aes(y=alt.age, x=Plot, fill=Plot)) +
   theme_classic()
 
 multi.trunk.altage 
-dev.copy(pdf, "figures/Fig.Sx.multi.trunk.age.pdf", width=4, height=4, encod="MacRoman")
+dev.copy(pdf, "figures/notused/Fig.Sx.multi.trunk.age.pdf", width=4, height=4, encod="MacRoman")
 dev.off()
 
 # get some info on the means
@@ -484,7 +484,7 @@ d15N.mod<-lm(d15N~Sample.Type*Plot, data=HAK.data); anova(d15N.mod) # plants Typ
 plot(allEffects(d15N.mod))
 
 # no interaction
-Anova(d15N.mod1, type=2)
+Anova(d15N.mod, type=2)
 posthoc<-emmeans(d15N.mod, ~Plot|Sample.Type)
 pairs(posthoc)
 multcomp::cld(posthoc, Letters=letters)
@@ -613,7 +613,7 @@ d13C.plot<-ggplot(data=mean.data, aes(x=Sample, y=d13C.mean, fill=Plot, group=Pl
   annotate(geom="text", x=2, y=-33, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=3, y=-33, label=expression(paste(bold("*"))), size=4) +
   theme(text = element_text(size=8)) +
-  ylab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))) + BW.back2
+  ylab(expression(paste(delta^{13}, C, " (\u2030, V-PDB)"))) + BW.back
 
 ### d15N
 d15N.plot<-ggplot(data=mean.data, aes(x=Sample, y=d15N.mean, fill=Plot, group=Plot))+
@@ -624,7 +624,7 @@ d15N.plot<-ggplot(data=mean.data, aes(x=Sample, y=d15N.mean, fill=Plot, group=Pl
   theme(text = element_text(size=8)) +
   annotate(geom="text", x=2, y=2.8, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=3, y=3.3, label=expression(paste(bold("*"))), size=4) +
-  ylab(expression(paste(delta^{15}, N, " (\u2030, air)"))) + BW.back2
+  ylab(expression(paste(delta^{15}, N, " (\u2030, air)"))) + BW.back
 
 ### total Carbon
 TC.plot<-ggplot(data=mean.data, aes(x=Sample, y=TC.mean, fill=Plot, group=Plot))+
@@ -637,7 +637,7 @@ TC.plot<-ggplot(data=mean.data, aes(x=Sample, y=TC.mean, fill=Plot, group=Plot))
         legend.title = element_blank()) +
   annotate(geom="text", x=1, y=25, label=expression(paste(bold("*"))), size=4) +
   annotate(geom="text", x=3, y=42, label=expression(paste(bold("*"))), size=4) +
-  ylab("Total Carbon (mmol/gdw)") +  BW.back2 
+  ylab("Total Carbon (mmol/gdw)") +  BW.back 
 
 ### total Nitrogen
 TN.plot<-ggplot(data=mean.data, aes(x=Sample, y=TN.mean, fill=Plot, group=Plot))+
@@ -646,7 +646,7 @@ TN.plot<-ggplot(data=mean.data, aes(x=Sample, y=TN.mean, fill=Plot, group=Plot))
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   scale_x_discrete(labels=expression(Soil, italic(A.~koa),italic(Rubus)~spp.))+
   theme(text = element_text(size=8)) +
-  ylab("Total Nitrogen (mmol/gdw)") + BW.back2
+  ylab("Total Nitrogen (mmol/gdw)") + BW.back
 
 # get the legend, # create some space to the left of the legend
 bar.legend <- get_legend(
@@ -681,18 +681,17 @@ krig<-read.csv("data/krig.matrix.csv") # matrix of points for isoscape grid
 # merge kriging data with isotope data
 data.merge<-as.data.frame(join_all(list(HAK.data, krig), by = "Position.point", type='full'))
 
-data.merge<-data.merge[c(-167:-194),] # drop NAs where no samples tKPen
+data.merge<-data.merge[c(-167:-194),] # drop NAs where no samples taken
 scape.data<-data.merge
 
 write.csv(scape.data, "output/scape.data.csv")
-
 #################
 ```
 
-#### δ^15^N pooled isoscape   
-setup
+### Isoscapes
+setup a map for the points 
 ```{r, krig d15N, message=FALSE, results='hide', fig.show='hide'}
-################# d15N krigs
+
 ################# make site maps based on bubble plots
 # just KP site
 krig.KP<- scape.data %>% filter(Plot=="KP")
@@ -702,14 +701,18 @@ krig.KP$Sample<-droplevels(krig.KP$Sample)
 krig.KP$y.matrix[24]=2.4; krig.KP$y.meter[24]=2.4
 krig.KP$x.matrix[24]=5.4; krig.KP$x.meter[24]=5.4
 
+# dot plot, sized by d15N values in KP
 KP.map<-krig.KP %>% as.data.frame %>% 
   ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d15N, color=Sample), alpha=3/4) + 
   ggtitle("KP plot--d15N (permil)") + coord_equal() + theme_bw()
 
-# just RK site
+
+
+##### just RK site
 krig.RK<- scape.data %>% filter(Plot=="RK")
 krig.RK$Sample<-droplevels(krig.RK$Sample)
 
+# dot plot, sized by d15N values in RK
 RK.map<-krig.RK %>% as.data.frame %>% 
   ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d15N, color=Sample), alpha=3/4) +
   ggtitle("RK plot--d15N (permil)") + coord_equal() + theme_bw()
@@ -718,32 +721,52 @@ plot_grid(RK.map, KP.map, ncol=2, nrow=1)
 
 #####################
 #####################
+
+
+######## dotplot for annotating with notes, this is supplemental figure
+### not sized by values
+KP.map2<-krig.KP %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter, group=Sample)) + 
+  geom_point(aes(shape = Sample, color=Sample), size=3, alpha=3/4) + 
+  scale_shape_manual(values=c(17,15,16)) +
+  scale_color_manual(values=c("mediumseagreen","lightskyblue3", "peru")) +
+  scale_y_continuous(limits = c(0, 20), breaks = seq(0, 20, by = 4)) +
+  scale_x_continuous(limits = c(0, 35), breaks = seq(0, 35, by = 5)) +
+  ggtitle("KP plot") + coord_equal() + theme_bw()
+
+
+RK.map2<-krig.RK %>% as.data.frame %>% 
+  ggplot(aes(x.meter, y.meter, group=Sample)) + 
+  geom_point(aes(shape = Sample, color=Sample), size=3, alpha=3/4) + 
+  scale_shape_manual(values=c(17,15,16)) +
+  scale_color_manual(values=c("mediumseagreen", "lightskyblue3", "peru")) +
+  scale_y_continuous(limits = c(0, 35), breaks = seq(0, 35, by = 5)) +
+  scale_x_continuous(limits = c(0, 20), breaks = seq(0, 20, by = 4)) +
+  ggtitle("RK plot") + coord_equal() + theme_bw()
+
+
+# export individual maps to edit
+plot_grid(RK.map2, ncol=1, nrow=1)
+dev.copy(pdf, "figures/notused/RK.map.dotplot.pdf", width=5, height=9, encod="MacRoman")
+dev.off()
+
+plot_grid(KP.map2, ncol=1, nrow=1)
+dev.copy(pdf, "figures/notused/KP.map.dotplot.pdf", width=7, height=4, encod="MacRoman")
+dev.off()
+
+#####################
+#####################
 ```
   
-First generate an isoscape for the compelte pooled sample set: the soil, koa, and *Rubus*. Do this for each of the two forests.  Figure 4ab
+```{r, pooled sample isoscapes, eval=FALSE}
+
+#### this was not kept due to the high varibility in samples and the lack of insight provided relative to the single sample type (soil or foliar).
+
+
+
+#First generate an isoscape for the compelte pooled sample set: the soil, koa, and *Rubus*. Do this for each of the two forests.  Figure 4ab
   
-*Acacia koa* plantation (KP) pooled δ^15^N isoscape
-```{r, krig KP d15N, message=FALSE, results='hide'}
-## Krig KP sites
-coordinates(krig.KP)<- ~x.meter + y.meter
-
-# Create a grid of "Pixels" using x as columns and y as rows
-# And the rows and columns of pixels:
-Columns=seq(from=-1, to=36, by=0.05)
-Rows=seq(from=-1, to=21, by=0.05)
-Grid.KP <- expand.grid(x=Columns,y=Rows)
-coordinates(Grid.KP) <- ~ x+y
-gridded(Grid.KP) <- TRUE # Plot the grid and points
-
-## expand binding box 
-#krig.KP@bbox # current data binding box
-x<-c(-1, 36)
-y<-c(-1, 21)
-xy<-cbind(x,y)
-S<-SpatialPoints(xy)
-bbox(S)
-krig.KP@bbox<-bbox(S) # expanded binding box for data
-Grid.KP@bbox<-bbox(S) # expand for plot corner
+#*Acacia koa* plantation (KP) pooled δ^15^N isoscape
 
 # autokrige
 set.seed(100)
@@ -756,7 +779,7 @@ dev.off()
 #####
 # Moran's I for autocorrelation
 coord.pool.KP<-cbind(krig.KP$x.matrix, krig.KP$y.matrix)
-res.pool.KP.N<-as.data.frame(correlog(coord.pool.KP, krig.KP$d15N, method="Moran"))
+res.pool.KP.N<-as.data.frame(pgirmess::correlog(coord.pool.KP, krig.KP$d15N, method="Moran"))
 
 moran.pool.KP.d15N<-ggplot(res.pool.KP.N, aes(x=dist.class, y=coef)) +
   geom_smooth() +
@@ -815,10 +838,11 @@ plotd15N.krig.KP<-spplot(d15N.KP.auto$krige_output["var1.pred"], col.regions=col
 
 
 ###########################
-```
 
-Remnant Forest (RK) pooled δ^15^N isoscape
-```{r, krig RK d15N, message=FALSE, results='hide'}
+
+
+#Remnant Forest (RK) pooled δ^15^N isoscape
+
 ###########################
 # RK Site Krig
 ###########################
@@ -850,7 +874,7 @@ Grid.RK@bbox<-bbox(S) # expand for plot corner
 # The sill is the total variance contribution, or the maximum variability between pairs of points. 
 
 # increasing the range gave better fit than auto
-setseed(100)
+set.seed(100)
 d15N.RK.auto <- autoKrige(d15N ~ 1, krig.RK, Grid.RK)# fix.value=c(NA, 2, NA)) # ordinary kriging
 plot(d15N.RK.auto, sp.layout = list(pts = list("sp.points", krig.RK)))
 dev.copy(pdf, "figures/notused/RK_15N_pooled_variogram.pdf", width=9, height=5, encod="MacRoman")
@@ -859,7 +883,7 @@ dev.off()
 
 # Moran's I for autocorrelation
 coord.pool.RK<-cbind(krig.RK$x.matrix, krig.RK$y.matrix)
-res.pool.RK.N<-as.data.frame(correlog(coord.pool.RK, krig.RK$d15N, method="Moran"))
+res.pool.RK.N<-as.data.frame(pgirmess::correlog(coord.pool.RK, krig.RK$d15N, method="Moran"))
 
 moran.pool.RK.d15N<-ggplot(res.pool.RK.N, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -897,10 +921,10 @@ plotd15N.krig.RK<-spplot(d15N.RK.auto$krige_output["var1.pred"], col.regions=col
        sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample], 
                         col="black", cex=0.8, alpha=0.5), 
        main=list(label=expression(paste(delta^{15}, N, " - RK (Remnant Forest)")), cex=0.7))
-```
 
-combine the KP-RK d15N pooled isoscape
-```{r, krig KPRK d15N, message=FALSE, results='hide'}
+
+#combine the KP-RK d15N pooled isoscape
+
 #####################
 grid.draw.ggmatrix <- function(x, recording = TRUE) {
   print(x)
@@ -912,12 +936,9 @@ dev.copy(png, "figures/FigS2_ab.d15N.comb.isoscape.png", width = 8, height = 4, 
 dev.off()
 
 
-```
-
-
 #### δ^13^C pooled isoscape  
-setup
-```{r, krig d13C, results='hide'}
+# setup
+
 ################# d13C krigs
 ################# make site maps based on bubble plots
 
@@ -930,16 +951,10 @@ RK.map<-krig.RK %>% as.data.frame %>%
   ggplot(aes(x.meter, y.meter, group=Sample)) + geom_point(aes(size=d13C, color=Sample), alpha=3/4) +
   ggtitle("RK plot--d13C (permil)") + coord_equal() + theme_bw()
 
-plot_grid(RK.map, KP.map, ncol=2, nrow=1)
-dev.copy(pdf, "figures/notused/dot.scape.d13C.pdf", width=9, height=4, encod="MacRoman")
-dev.off()
 
-#####################
-#####################
-```
 
-*Acacia koa* plantation (KP) d13C isoscape
-```{r, krig KP d13C, message=FALSE, results='hide'}
+
+# *Acacia koa* plantation (KP) d13C isoscape
 
 # autokrige
 d13C.KP.auto <- autoKrige(d13C ~ 1, krig.KP, Grid.KP) # ordinary kriging
@@ -949,7 +964,7 @@ dev.off()
 #d13C.KP.auto$krige_output
 
 # Moran's I for autocorrelation
-res.pool.KP.C<-as.data.frame(correlog(coord.pool.KP, krig.KP$d13C, method="Moran"))
+res.pool.KP.C<-as.data.frame(pgirmess::correlog(coord.pool.KP, krig.KP$d13C, method="Moran"))
 
 moran.pool.KP.d13C<-ggplot(res.pool.KP.C, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -1003,11 +1018,8 @@ plotd13C.krig.KP<-spplot(d13C.KP.auto$krige_output["var1.pred"], col.regions=col
        main=list(label=expression(paste(delta^{13}, C, " - KP (Restored Forest)")), cex=0.8), colorkey=FALSE)
 
 
-###########################
-```
+## Remnant Forest (RK) d13C isoscape: Figure 2cd
 
-Remnant Forest (RK) d13C isoscape: Figure 2cd
-```{r, krig RK d13C, message=FALSE, results='hide'}
 ###########################
 # RK Site Krig
 ###########################
@@ -1022,7 +1034,7 @@ dev.off()
 #d13C.RK.auto$krige_output
 
 # Moran's I for autocorrelation
-res.pool.RK.C<-as.data.frame(correlog(coord.pool.RK, krig.RK$d13C, method="Moran"))
+res.pool.RK.C<-as.data.frame(pgirmess::correlog(coord.pool.RK, krig.RK$d13C, method="Moran"))
 
 moran.pool.RK.d13C<-ggplot(res.pool.RK.C, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -1059,10 +1071,10 @@ plotd13C.krig.RK<-spplot(d13C.RK.auto$krige_output["var1.pred"], col.regions=col
        sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample],
                         col="black", cex=0.8, alpha=0.5), 
        main=list(label=expression(paste(delta^{13}, C, " - RK (Remnant Forest)")), cex=0.7))
-```
 
-combine the plots
-```{r, krig KPRK d13C, message=FALSE, results='hide'}
+
+## combine the plots
+
 #####################
 grid.draw.ggmatrix <- function(x, recording = TRUE) {
   print(x)
@@ -1074,11 +1086,10 @@ dev.copy(png, "figures/FigS2_cd.d13C.comb.isoscape.png", width = 8, height = 4, 
 dev.off()
 
 
-```
 
 #### Density plots: pooled samples  
-Density plots using predictions of N and C values for all sample types: the soil, koa, and *Rubus*. 
-```{r, density plots fig S2, fig.show='hold', out.height='50%', message=FALSE, results='hide'}
+
+#Density plots using predictions of N and C values for all sample types: the soil, koa, and *Rubus*. 
 
 ###################
 # make density plots using predictions
@@ -1115,7 +1126,7 @@ density.predict.N.pooled<-ggplot(pred.dat.N, aes(x=d15N.pred)) +
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2
+             linetype="dashed", lwd=0.2) + BW.back
   #annotate(geom="text", x=0, y=3.3, label=expression(paste(bold("A"))), size=3) 
 
 
@@ -1154,7 +1165,7 @@ density.predict.C.pooled<-ggplot(pred.dat.C, aes(x=d13C.pred)) +
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   geom_vline(data=predict.mean.C, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2 
+             linetype="dashed", lwd=0.2) + BW.back 
   #annotate(geom="text", x=-32, y=1.7, label=expression(paste(bold("B"))), size=3)
 
 # get the legend, # create some space to the left of the legend
@@ -1169,14 +1180,34 @@ gridExtra::grid.arrange(density.predict.N.pooled + theme(legend.position = "none
                         density.legend,
                         ncol=3, nrow=1, widths = c(1,1,0.4))
 ```
-
-### Soil isoscapes    
   
 #### δ^15^N soil-isoscape
   
 Subset data and only examine SOIL.     
 *Restored forest (KP)* and *Remnant Forest (RK)*
 ```{r, KP soil krig, message=FALSE, results='hide'}
+## Krig KP sites
+coordinates(krig.KP)<- ~x.meter + y.meter
+
+# Create a grid of "Pixels" using x as columns and y as rows
+# And the rows and columns of pixels:
+Columns=seq(from=-1, to=36, by=0.05)
+Rows=seq(from=-1, to=21, by=0.05)
+Grid.KP <- expand.grid(x=Columns,y=Rows)
+coordinates(Grid.KP) <- ~ x+y
+gridded(Grid.KP) <- TRUE # Plot the grid and points
+
+## expand binding box 
+#krig.KP@bbox # current data binding box
+x<-c(-1, 36)
+y<-c(-1, 21)
+xy<-cbind(x,y)
+S<-SpatialPoints(xy)
+bbox(S)
+krig.KP@bbox<-bbox(S) # expanded binding box for data
+Grid.KP@bbox<-bbox(S) # expand for plot corner
+
+
 ###### KP site d15N
 
 ## d15N SOIL plot
@@ -1185,7 +1216,7 @@ KP.soil<-  krig.KP[(krig.KP$Sample=="Soil"),] #just soil
 KP.soil$Sample<-droplevels(KP.soil$Sample)
 
 ## Krig KP sites
-coordinates(KP.soil)<- ~x.meter + y.meter
+# coordinates(KP.soil)<- ~x.meter + y.meter
 
 # Create a grid of "Pixels" using x as columns and y as rows
 # And the rows and columns of pixels:
@@ -1215,7 +1246,7 @@ dev.off()
 
 # Moran's I for autocorrelation
 coord.soil.KP<-cbind(KP.soil$x.matrix, KP.soil$y.matrix)
-res.soil.KP.N<-as.data.frame(correlog(coord.soil.KP, KP.soil$d15N, method="Moran"))
+res.soil.KP.N<-as.data.frame(pgirmess::correlog(coord.soil.KP, KP.soil$d15N, method="Moran"))
 
 moran.soil.KP.d15N<-ggplot(res.soil.KP.N, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -1262,7 +1293,7 @@ RK.soil<-  krig.RK[(krig.RK$Sample=="Soil"),] #just soil
 RK.soil$Sample<-droplevels(RK.soil$Sample)
 
 ## Krig RK sites
-coordinates(RK.soil)<- ~x.meter + y.meter
+#coordinates(RK.soil)<- ~x.meter + y.meter
 
 # Create a grid of "Pixels" using x as columns and y as rows
 # And the rows and columns of pixels:
@@ -1291,7 +1322,7 @@ dev.off()
 
 # Moran's I for autocorrelation
 coord.soil.RK<-cbind(RK.soil$x.matrix, RK.soil$y.matrix)
-res.soil.RK.N<-as.data.frame(correlog(coord.soil.RK, RK.soil$d15N, method="Moran"))
+res.soil.RK.N<-as.data.frame(pgirmess::correlog(coord.soil.RK, RK.soil$d15N, method="Moran"))
 
 moran.soil.RK.d15N<-ggplot(res.soil.RK.N, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -1353,7 +1384,7 @@ dev.off()
 #d13C.KP.soil$krige_output
 
 # Moran's I for autocorrelation
-res.soil.KP.C<-as.data.frame(correlog(coord.soil.KP, KP.soil$d13C, method="Moran"))
+res.soil.KP.C<-as.data.frame(pgirmess::correlog(coord.soil.KP, KP.soil$d13C, method="Moran"))
 
 moran.soil.KP.d13C<-ggplot(res.soil.KP.C, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -1407,7 +1438,7 @@ dev.off()
 #d13C.RK.soil$krige_output
 
 # Moran's I for autocorrelation
-res.soil.RK.C<-as.data.frame(correlog(coord.soil.RK, RK.soil$d13C, method="Moran"))
+res.soil.RK.C<-as.data.frame(pgirmess::correlog(coord.soil.RK, RK.soil$d13C, method="Moran"))
 
 moran.soil.RK.d13C<-ggplot(res.soil.RK.C, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -1486,19 +1517,20 @@ mwu(pred.soil.N, d15N.pred, Plot) # signif difference in predictions (p<0.001)
 
 # Density plot SOIL
 # plot.means
-predict.mean.N <- ddply(pred.soil.N, "Plot", summarise, grp.mean=mean(d15N.pred, na.rm=TRUE))
-predict.sd.N <- ddply(pred.soil.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
+predict.mean.N.soil <- ddply(pred.soil.N, "Plot", summarise, 
+                             grp.mean=mean(d15N.pred, na.rm=TRUE))
+predict.sd.N.soil <- ddply(pred.soil.N, "Plot", summarise, sd=sd(d15N.pred, na.rm=TRUE))
 
 density.predict.Nsoil<-ggplot(pred.soil.N, aes(x=d15N.pred)) +
-  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+ ylim(0,1.2) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+ xlim(2,10) +ylim(0,1.2) +
   scale_y_continuous(labels = label_number(accuracy = 0.3))+
   xlab(expression(paste("Soil ",delta^{15}, N["predicted"], sp="")))+
   theme(axis.text = element_text(size = 6), axis.ticks = element_line(size = 0.2)) +
   ylab("density")+
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
-  geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2 
+  geom_vline(data=predict.mean.N.soil, aes(xintercept=grp.mean, color=Plot),
+             linetype="dashed", lwd=0.2) + BW.back 
   #annotate(geom="text", x=2, y=1.2, label=expression(paste(bold("C"))), size=3)
 
 
@@ -1521,28 +1553,28 @@ mwu(pred.soil.C, d13C.pred, Plot) # signif difference in predictions (p<0.001)
 
 # Density plot
 # plot.means
-predict.mean.C <- ddply(pred.soil.C, "Plot", summarise, grp.mean=mean(d13C.pred, na.rm=TRUE))
+predict.mean.C.soil <- ddply(pred.soil.C, "Plot", 
+                             summarise, grp.mean=mean(d13C.pred, na.rm=TRUE))
 
 density.predict.Csoil<-ggplot(pred.soil.C, aes(x=d13C.pred)) +
-  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+ ylim(0,0.8) +
+  geom_density(aes(color=Plot, fill=Plot), alpha=0.5, lwd=0.4)+ xlim(-28, -21) + ylim(0,0.8) +
   xlab(expression(paste("Soil ",delta^{13}, C["predicted"], sp="")))+
   ylab("")+
   theme(axis.text = element_text(size = 6), axis.ticks = element_line(size = 0.2)) +
   scale_color_manual(values=c("#E69F00", "#56B4E9")) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
-  geom_vline(data=predict.mean.C, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2 
+  geom_vline(data=predict.mean.C.soil, aes(xintercept=grp.mean, color=Plot),
+             linetype="dashed", lwd=0.2) + BW.back 
   #annotate(geom="text", x=-28, y=0.8, label=expression(paste(bold("D"))), size=3)
 
 gridExtra::grid.arrange(density.predict.Nsoil + theme(legend.position = "none"),
                         density.predict.Csoil + theme(legend.position = "none"),
-                        density.legend,
+                        density.legend, 
                         ncol=3, nrow=1, widths = c(1,1,0.3))
 
 ```
 
-### Foliar Isoscapes    
-  
+
 #### δ^15^N foliar-isoscape
   
 Subset data and only examine plants.     
@@ -1559,7 +1591,7 @@ KP.plants<-  krig.KP[!(krig.KP$Sample=="Soil"),] #just plants, remove the soil
 KP.plants$Sample<-droplevels(KP.plants$Sample)
 
 ## Krig KP sites
-coordinates(KP.plants)<- ~x.meter + y.meter
+#coordinates(KP.plants)<- ~x.meter + y.meter
 
 # Create a grid of "Pixels" using x as columns and y as rows
 # And the rows and columns of pixels:
@@ -1588,7 +1620,7 @@ dev.off()
 
 # Moran's I for autocorrelation
 coord.plants.KP<-cbind(KP.plants$x.matrix, KP.plants$y.matrix)
-res.plants.KP<-as.data.frame(correlog(coord.plants.KP, KP.plants$d15N, method="Moran"))
+res.plants.KP<-as.data.frame(pgirmess::correlog(coord.plants.KP, KP.plants$d15N, method="Moran"))
 
 moran.plants.KP.d15N<-ggplot(res.plants.KP, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -1636,7 +1668,7 @@ RK.plants<-  krig.RK[!(krig.RK$Sample=="Soil"),] #just plants, remove soil
 RK.plants$Sample<-droplevels(RK.plants$Sample)
 
 ## Krig RK sites
-coordinates(RK.plants)<- ~x.meter + y.meter
+#coordinates(RK.plants)<- ~x.meter + y.meter
 
 # Create a grid of "Pixels" using x as columns and y as rows
 # And the rows and columns of pixels:
@@ -1665,7 +1697,7 @@ dev.off()
 
 # Moran's I for autocorrelation
 coord.plants.RK<-cbind(RK.plants$x.matrix, RK.plants$y.matrix)
-res.plants.RK.N<-as.data.frame(correlog(coord.plants.RK, RK.plants$d15N, method="Moran"))
+res.plants.RK.N<-as.data.frame(pgirmess::correlog(coord.plants.RK, RK.plants$d15N, method="Moran"))
 
 moran.plants.RK.d15N<-ggplot(res.plants.RK.N, aes(x=dist.class, y=coef))+
   geom_point(size=2, pch=16) +
@@ -1752,7 +1784,7 @@ density.predict.Nplants<-ggplot(pred.plants.N, aes(x=d15N.pred)) +
   scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
   #annotate(geom="text", x=0, y=2.5, label=expression(paste(bold("E"))), size=3) +
   geom_vline(data=predict.mean.N, aes(xintercept=grp.mean, color=Plot),
-             linetype="dashed", lwd=0.2) + BW.back2
+             linetype="dashed", lwd=0.2) + BW.back
 
 ```
 
@@ -1766,24 +1798,95 @@ fig.format3<-theme(panel.grid.major = element_blank(),
                    axis.line = element_line(colour = "black", size=0.2), 
                    text = element_text(size = 6))
 
+density.legend <- get_legend(
+  density.predict.Nsoil + 
+    theme(legend.box.margin = margin(0, 0, 0, 12)) +
+    theme(legend.title=element_blank())+ # no need for a title above legend
+    theme(legend.key.size = unit(0.5, "cm")))
 
-plot_grid((density.predict.N.pooled  + ylab("density") + 
-             theme(legend.position = "none")+ fig.format3),
-          
-          (density.predict.C.pooled + ylab("") + 
-             theme(legend.position = c(0.85, 0.85), legend.key.size = unit(0.3, "cm"),
-                   legend.title = element_blank())+fig.format3),
-          
-          (density.predict.Nsoil + ylab("density") + 
-             theme(legend.position = "none") +fig.format3),
-          
-          (density.predict.Csoil + ylab("")+ theme(legend.position = "none")+fig.format3),
-          
-          (density.predict.Nplants + theme(legend.position = "none")+fig.format3),
-          
-          labels=c('A', 'B', 'C', 'D', 'E'), label_size=8, hjust=-1, vjust= 2, ncol=2, nrow=3)
+plot_grid((density.predict.Nsoil + ylab("density") + theme(legend.position = "none") +
+             fig.format3),
+          (density.predict.Csoil + ylab("")+ theme(legend.position = "none") + fig.format3),
+          (density.predict.Nplants + theme(legend.position = "none") + fig.format3),
+          density.legend, 
+          labels=c('A', 'B', 'C', ''), label_size=8, hjust=-1, vjust= 2, ncol=4, nrow=1)
 
-dev.copy(pdf, "figures/Fig 4_ad_density plots.pdf", width = 3, height = 5)
+
+dev.copy(pdf, "figures/Fig 4_ac_density plots.pdf", width = 7, height = 3)
 dev.off()
+```
+
+
+```{r, leaves N, eval=FALSE}
+#### foliar N-scape
+# autokrige
+N.KP.plants <- autoKrige(Total.N..mmol.gdw ~ 1, KP.plants, Grid.KP) 
+plot(N.KP.plants)
+
+
+#predicted krige
+N.krig.KP.plants<-spplot(N.KP.plants$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", krig.KP, pch=c(17,2,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
+      main=list(label=" Foliar N content- KP"), cex=0.8, colorkey=FALSE)
+
+
+# autokrige
+N.RK.plants <- autoKrige(Total.N..mmol.gdw ~ 1, RK.plants, Grid.RK, fix.values = c(0, 5, 0.06))
+plot(N.RK.plants, sp.layout = list(pts = list("sp.points", RK.plants)))
+
+N.krig.RK.plants<-spplot(N.RK.plants$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
+       main=list(label=" Foliar N content- RK"), cex=0.8, colorkey=TRUE)
+
+
+
+
+grid.draw.ggmatrix <- function(x, recording = TRUE) {
+  print(x)
+}
+### combined KP-Rk krig d15N plot 
+par(mfrow=c(1,2))
+gridExtra::grid.arrange(N.krig.KP.plants, N.krig.RK.plants, ncol=2, nrow=1) #widths = c(1.2,1))
+dev.copy(png, "figures/Figx. N.isoscape.plants.png", width = 8, height = 4, units = 'in', res = 300)
+dev.off()
+
+
+
+################## soil
+# autokrige
+N.KP.soil <- autoKrige(Total.N..mmol.gdw ~ 1, KP.soil, Grid.KP, fix.value=c(0.02, 5, 0.08)) 
+plot(N.KP.soil)
+
+
+#predicted krige
+N.krig.KP.soil<-spplot(N.KP.soil$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", krig.KP, pch=c(17,2,1)[krig.KP$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
+      main=list(label=" Soil N content- KP"), cex=0.8, colorkey=FALSE)
+
+
+# autokrige
+N.RK.soil <- autoKrige(Total.N..mmol.gdw ~ 1, RK.soil, Grid.RK, fix.values = c(0.02, 5, 0.06)) # ordinary kriging
+plot(N.RK.soil, sp.layout = list(pts = list("sp.points", RK.soil)))
+
+N.krig.RK.soil<-spplot(N.RK.soil$krige_output["var1.pred"], col.regions=col.scheme.N, 
+       sp.layout = list("sp.points", krig.RK, pch=c(17,2,1)[krig.RK$Sample], 
+                        col=c("black"), cex=0.8, alpha=0.5),
+       main=list(label=" Soil N content- RK"), cex=0.8, colorkey=TRUE)
+
+
+
+
+grid.draw.ggmatrix <- function(x, recording = TRUE) {
+  print(x)
+}
+### combined KP-Rk krig d15N plot 
+par(mfrow=c(1,2))
+gridExtra::grid.arrange(N.krig.KP.soil, N.krig.RK.soil, ncol=2, nrow=1) #widths = c(1.2,1))
+dev.copy(png, "figures/Figx. N.isoscape.soil.png", width = 8, height = 4, units = 'in', res = 300)
+dev.off()
+
 ```
 
