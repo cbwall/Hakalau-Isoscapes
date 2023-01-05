@@ -171,6 +171,16 @@ pdf(file= "figures/Fig 1.sitemaps.pdf", height=5, width=8)
 site.compiled
 dev.off()
 
+
+# for attribution
+A<-ggmap(hi_map)
+B<-ggmap(map2)
+C<-ggmap(mapKP, group=type)
+D<-ggmap(mapRK, group=type)
+
+pdf(file= "figures/notused/map_cred.pdf", height=5, width=8)
+plot_grid(A, B, C, D, ncol=2, nrow=2)
+dev.off()
 ```
 
 #### Ecology and Isotopes data  
