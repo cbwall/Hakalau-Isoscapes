@@ -407,6 +407,39 @@ dev.copy(pdf, "figures/FigS1.DBHCanopy.pdf", width=6, height=3.5, encod="MacRoma
 dev.off()
 ```
  
+```{r age, eval=FALSE}
+###################### age
+# approx age
+HAK.data<-HAK.data %>%
+  mutate(growth.rate.mm.y = ifelse(Plot=="KP" & Sample=="Koa", 12,
+         ifelse(Plot=="RK" & Sample=="Koa", 4, "NA")))
+HAK.data$growth.rate.mm.y<-as.numeric(HAK.data$growth.rate.mm.y)
+HAK.data<-HAK.data %>%
+  mutate(alt.age = ifelse(Sample=="Koa", (DBH.Total*10)/growth.rate.mm.y, "NA"))
+
+# correct for DBH being in cm and not mm
+HAK.data$alt.age<-as.numeric(HAK.data$alt.age)
+
+#### box plot of mutli-trunks, at 12 vs 4 mm/y
+multi.trunk.altage<-ggplot(HAK.data, aes(y=alt.age, x=Plot, fill=Plot)) + 
+  geom_boxplot(outlier.shape = NA, alpha=0.6)+
+  geom_point(pch = 21, position = position_jitterdodge(), alpha=0.6) +
+  xlab("Plots") +
+  ylab("age estimate (year)")+
+  scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+  annotate(geom="text", x=1.55, y=75, label=expression(paste(bold("*"))), size=5) +
+  theme_classic()
+multi.trunk.altage 
+dev.copy(pdf, "figures/Fig.Sx.multi.trunk.age.pdf", width=4, height=4, encod="MacRoman")
+dev.off()
+
+# get some info on the means
+age.m<-aggregate(alt.age~Plot, data=HAK.data, mean)
+age.sd<-aggregate(alt.age~Plot, data=HAK.data, sd)
+age.n<-aggregate(alt.age~Plot, data=HAK.data, length)
+
+```
+ 
 Run statistics on the responses (dd15N, 13C, tissue C and N)
 ```{r, stats on responses, results='hide', fig.show='hide'}
 
