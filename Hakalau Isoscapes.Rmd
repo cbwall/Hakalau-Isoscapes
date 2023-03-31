@@ -430,7 +430,7 @@ multi.trunk.altage<-ggplot(HAK.data, aes(y=alt.age, x=Plot, fill=Plot)) +
   annotate(geom="text", x=1.55, y=75, label=expression(paste(bold("*"))), size=5) +
   theme_classic()
 multi.trunk.altage 
-dev.copy(pdf, "figures/Fig.Sx.multi.trunk.age.pdf", width=4, height=4, encod="MacRoman")
+dev.copy(pdf, "figures/notused/Fig.Sx.multi.trunk.age.pdf", width=4, height=4, encod="MacRoman")
 dev.off()
 
 # get some info on the means
