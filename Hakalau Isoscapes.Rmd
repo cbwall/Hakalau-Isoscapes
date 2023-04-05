@@ -419,6 +419,8 @@ HAK.data<-HAK.data %>%
 
 # correct for DBH being in cm and not mm
 HAK.data$alt.age<-as.numeric(HAK.data$alt.age)
+mod.age<-lm(alt.age~Plot, data=HAK.data)
+anova(mod.age)
 
 #### box plot of mutli-trunks, at 12 vs 4 mm/y
 multi.trunk.altage<-ggplot(HAK.data, aes(y=alt.age, x=Plot, fill=Plot)) + 
@@ -437,6 +439,9 @@ dev.off()
 age.m<-aggregate(alt.age~Plot, data=HAK.data, mean)
 age.sd<-aggregate(alt.age~Plot, data=HAK.data, sd)
 age.n<-aggregate(alt.age~Plot, data=HAK.data, length)
+age.m$age.SE<-(age.sd$alt.age/sqrt(age.n$alt.age))
+
+
 
 ```
  
