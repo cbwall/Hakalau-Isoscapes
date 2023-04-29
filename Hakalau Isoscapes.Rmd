@@ -339,7 +339,7 @@ mwu(HAK.data, Canopy.area, Plot) # not
 Age can be an important determinant of nitrogen fixing ability, with younger trees fixing more nitrogen than old trees. The growth rate of A. koa across the Hawaiian Islands is variable, with dbh-based growth rates of 10-15 mm/y in sunlit areas where the crown is exposed and 6-7 mm/y estimated across a range of sites in the Hawai‘i Department of Forestry and Wildlife long-term forest plots. We assume *A. koa* in the  plantation have growth rates similar to other sunlit areas across Hawai‘i (~ 12 mm/y) and *A. koa* in the remnant forest are 4 mm/y.  
 
 Inspect age estimates with box-plots.
-```{r age estimate, fig.show='hold', out.width= "50%", fig.align='center', caption="**Figure 5**. Box plot estimates of *Acacia koa* age in the koa plantation (KP) and remnant forest (RK) using diameter at breast height-based growth rates of 12 mm (KP) and 4 mm per year (RK). Asterisk indicate significant plot effects (p<0.05)", message=FALSE, results='hide'}
+```{r age estimate, fig.show='hold', fig.dim=c(3,4), fig.align='center', fig.caption="**Figure 5**. Box plot estimates of *Acacia koa* age in the koa plantation (KP) and remnant forest (RK) using diameter at breast height-based growth rates of 12 mm (KP) and 4 mm per year (RK). Asterisk indicate significant plot effects (p<0.05)", message=FALSE, results='hide'}
 ###################### age
 
 # approx age
@@ -384,7 +384,7 @@ mwu(HAK.data, alt.age, Plot) # signif difference in predictions (p=0.049)
 ### Isotope data  
 Using soil and and foliar samples (*A. koa* and *Rubus* spp.), we will inspect the patterns among sample types and forests.  We will plot sample means +/- SE. Subsequently, we will use linear models to determine statistical differences between sample types and forests.  
 
-```{r isotope plots, fig.dim=c(7,4), Fig.cap="**Figure 3**. Soil and foliar (*Acacia koa*, *Rubus* spp.) (**A**) δ^15^N, (**B**) δ^13^C, (**C**) total nitrogen, and (**D**) total carbon in koa plantation (KP) and remnant (RK) Hakalau forests. Asterisks indicate significant differences between forests within a sample type (p <0.05). Values are mean±SE, n=48 (soil), 18 and 10 [*Acacia koa*], 28 and 14 [*Rubus* spp.] in KP and RK forests, respectively.", fig.align='center', message=FALSE, results='hide'}
+```{r isotope plots, fig.dim=c(7,3), Fig.cap="**Figure 3**. Soil and foliar (*Acacia koa*, *Rubus* spp.) (**A**) δ^15^N, (**B**) δ^13^C, (**C**) total nitrogen, and (**D**) total carbon in koa plantation (KP) and remnant (RK) Hakalau forests. Asterisks indicate significant differences between forests within a sample type (p <0.05). Values are mean±SE, n=48 (soil), 18 and 10 [*Acacia koa*], 28 and 14 [*Rubus* spp.] in KP and RK forests, respectively.", fig.align='center', message=FALSE, results='hide'}
 
 ## make some means and SE for plotting
 d13C.m<-aggregate(d13C~Plot+Sample, data=HAK.data, mean)
