@@ -6,9 +6,13 @@ CB Wall<sup>1,2</sup>, SIO Swift<sup>2</sup>, CM D'Antonia<sup>3</sup>, G Gebaue
 <sup>2</sup>University of Hawai'i at Mānoa, Pacific Biosciences Research Center, USA  
 <sup>3</sup>University of California, Santa Barbara, USA  
 <sup>4</sup>University of Bayreuth, Germany   
-  
-Stable isotope analysis of plants and soil in remnant and restored koa stands in Hakalau Forest National Wildlife Refuge. Koa (*Acacia koa*) leaves, understory plants (*Rubus* spp.), and soil in remanant forests where cattle have been excluded and in restored forests where cattle once roamed and vegetation was cleared in 19th century. Plots (20 x 35m) were laid out in each forest stand with samples collected within 4 x 5m subplots (*A. koa* or *Rubus* spp.) or at spatially explicit intervals (soil) to create an isotope-map, or "isoscape," of δ<sup>15</sup>N and δ<sup>13</sup>C isotope values.    
+ 
+<p align="center">
+  <img align="center" src="https://github.com/cbwall/Hakalau-Isoscapes/blob/master/photos/Hakalau_forest_figure_small.jpg" width="50%" height="50%">
+</p>
 
+
+Stable isotope analysis of plants and soil in remnant and restored koa stands in Hakalau Forest National Wildlife Refuge. Koa (*Acacia koa*) leaves, understory plants (*Rubus* spp.), and soil in remanant forests where cattle have been excluded and in restored forests where cattle once roamed and vegetation was cleared in 19th century. Plots (20 x 35m) were laid out in each forest stand with samples collected within 4 x 5m subplots (*A. koa* or *Rubus* spp.) or at spatially explicit intervals (soil) to create an isotope-map, or "isoscape," of δ<sup>15</sup>N and δ<sup>13</sup>C isotope values.    
 
 ## File Directory  
 The file directory contains folders and scripts (Rmd) to be run in RStudio. The folders house data, output, and raw + polished figures.  
@@ -24,8 +28,8 @@ The file directory contains folders and scripts (Rmd) to be run in RStudio. The 
 
 ## Metadata
 Important data files to generate maps, figures, and run models can be foudn in the *data folder*. The key data files are:  
-  
-   *Hakalau.gps.csv*  
+
+  - *Hakalau.gps.csv*  
     - This is the gps data used to make the ggmap using satellite images  
     - Data include latitude, longitude, and elevation for the mapped plot corners and *A. koa* trees
     - Two trees are mapped as they bordered the plot but are outside plot boundaries
@@ -55,6 +59,6 @@ Important data files to generate maps, figures, and run models can be foudn in t
   - *d13C* = δ<sup>13</sup>C, carbon isotope values relative to VPDB-standard in permil notation
   - *C.N* = molar ratio of carbon to nitrogen using *Total.C..mmol.gdw / Total.N..mmol.gdw*
   
-In the final data *Hakalau.fulldata.csv*, all the above aplly, except *DBH.total" and "Canopy.area" are now the calculated variables in cm and m, respectively.
+In the final data *Hakalau.fulldata.csv*, all the above aplly, except *DBH.total* (cm) and *Canopy.area* (m) are now the calculated variables.
  
 
