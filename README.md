@@ -23,14 +23,34 @@ The file directory contains folders and scripts (Rmd) to be run in RStudio. The 
      - *photos* = contains filed photos or photos used in Rmd.html knitr
 
 ## Metadata
-The key data files:
+Important data files to generate maps, figures, and run models can be foudn in the *data folder*. The key data files are:  
+   *Hakalau.gps.csv*  
+    - This is the gps data used to make the ggmap using satellite images  
+  - *krig.matrix.csv*  
+    - This is used to make the krig landscape for spatial interpolation  
   - *Hakalau.rawdata.csv*   
     - This is the raw data used to generate metrics such as diameter at breast height (dbh) and canopy area  
   - *Hakalau.fulldata.csv*    
     - This is the final data once dbh and canopy area have been calculated  
-  - *Hakalau.gps.csv*  
-    - This is the gps data used to make the ggmap using satellite images  
-  - *krig.matrix.csv*  
-    - This is used to make the krig landscape for spatial interpolation  
-
+ 
+ Explanation of column info in raw *Hakalau.rawdata.csv*
+  - *Plot* = either Koa Plantation (KP) or remnant koa forest (RK)
+  - *Sample* = soil, koa (*Acacia koa*), RUBARG (*Rubus argutus*), RUBHAW (*Rubus hawaiiensis*)
+  - *ID* = individual koa trees, not IDs for Rubus spp. (RUBARG, RUBHAW)
+  - *Position.point* = the quadrat each plant is in, with corresponding *ID* number (for koa only)
+  - *replicates* = the number of replicates sampled for each sample (pooling across different plants only in *Rubus* spp.)
+  - *DBH..cm.1* - *DBH..cm.5* = diameter at breast height (dbh) in cm for individual stem/trunks, with #(1-5) indicating the number of stems
+  - *canopy.0..m* - *canopy.270..m* = canopy area measured in m, making an ellipse of 4 headings (0, 90, 180, 270 degrees)
+  - *N..ug* = nitrogen content in micrograms N in soil and foliar samples run for isotope analysis
+  - *N..percent* = percent nitrogen for soil and foliar samples run for isotope analyses
+  - *Total.N..mmol.gdw* = total N content for soil and foliar samples as mmol of N per gram of dry weight in parent material
+  - *d15N* = δ<sup>15</sup>N, nitrogen isotope values relative to air-standard in permil notation
+  - *C..ug* = carbon content in micrograms C in soil and foliar samples run for isotope analysis, later used to calculate molar C:N
+  - *C..percent* = percent carbon for soil and foliar samples run for isotope analyses
+  - *Total.C..mmol.gdw* = total C content for soil and foliar samples as mmol of C per gram of dry weight in parent material
+  - *d13C* = δ<sup>13</sup>C, carbon isotope values relative to VPDB-standard in permil notation
+  - *C.N* = molar ratio of carbon to nitrogen using *Total.C..mmol.gdw / Total.N..mmol.gdw*
+  
+In the final data *Hakalau.fulldata.csv*, all the above aplly, except *DBH.total" and "Canopy.area" are now the calculated variables in cm and m, respectively.
+ 
 
