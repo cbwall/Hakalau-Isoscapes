@@ -60,6 +60,6 @@ Important data files to generate maps, figures, and run models can be foudn in t
   - *d13C* = δ<sup>13</sup>C, carbon isotope values relative to VPDB-standard in permil notation
   - *C.N* = molar ratio of carbon to nitrogen using *Total.C..mmol.gdw / Total.N..mmol.gdw*
   
-In the final data *Hakalau.fulldata.csv*, all the above aplly, except *DBH.total* (cm) and *Canopy.area* (m) are now the calculated variables.
+In the final data *Hakalau.fulldata.csv*, all the above apply, except *DBH.total* (cm) and *Canopy.area* (m) are now the calculated variables.
  
 
