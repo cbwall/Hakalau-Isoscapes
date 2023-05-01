@@ -1008,7 +1008,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d13C plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd13C.krig.KP.soil, plotd13C.krig.RK.soil, ncol=2, nrow=1, widths = c(1.22,1))
+gridExtra::grid.arrange(plotd13C.krig.KP.soil, plotd13C.krig.RK.soil, ncol=2, nrow=1, widths = c(1.22,1)) 
 dev.copy(png, "figures/Fig 4_cd.d13C.isoscape.soils.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
