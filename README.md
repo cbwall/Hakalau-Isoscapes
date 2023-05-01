@@ -24,10 +24,14 @@ The file directory contains folders and scripts (Rmd) to be run in RStudio. The 
 
 ## Metadata
 Important data files to generate maps, figures, and run models can be foudn in the *data folder*. The key data files are:  
+  
    *Hakalau.gps.csv*  
     - This is the gps data used to make the ggmap using satellite images  
+    - Data include latitude, longitude, and elevation for the mapped plot corners and *A. koa* trees
+    - Two trees are mapped as they bordered the plot but are outside plot boundaries
   - *krig.matrix.csv*  
     - This is used to make the krig landscape for spatial interpolation  
+    - Data here use the distance in x-y meters of the superplot to make an x-y matrix for autoKrig
   - *Hakalau.rawdata.csv*   
     - This is the raw data used to generate metrics such as diameter at breast height (dbh) and canopy area  
   - *Hakalau.fulldata.csv*    
