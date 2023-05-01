@@ -35,7 +35,7 @@ Native Hawaiian montane mesic and wet forests have significantly declined due to
 </center>  
 
 
-We collected samples 20-21 August 2019 in Hakalau Forest, Hawai‘i Island. Plants and soil samples were collected from two areas: the koa plantation (*KP sites*), and a remnant mixed koa-‘ōhi‘a forest (*RK sites*). The canopy species in these forests are engineers of forest habitats are dominated by *Acacia koa*, an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria, and a non-N~2~-fixing hardwood species *Metrosiderous polymorpha* (Hawaiian name: *‘ōhi‘a*) Understory species include *Rubus argutus* - an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiiensis* (common name: ‘ākala); both are members of the Roseaceae family. Notably, *R. argutus* was found more in the remnant forest (i.e., RK) and the indigenous *R. hawaiiensis* was common in the koa plantation (i.e, KP). 
+We collected samples 20-21 August 2019 in Hakalau Forest, Hawai‘i Island. Plants and soil samples were collected from two areas: the koa plantation (*KP sites*), and a remnant mixed koa-‘ōhi‘a forest (*RK sites*). The canopy species in these forests are engineers of forest habitats are dominated by *Acacia koa*, an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria, and a non-N~2~-fixing hardwood species *Metrosiderous polymorpha* (Hawaiian name: *‘ōhi‘a*) Understory species include *Rubus argutus* - an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiensis* (Hawaiian name: ‘ākala); both are members of the Roseaceae family. Notably, *R. argutus* was found more in the remnant forest (i.e., RK) and the indigenous *R. hawaiiensis* was common in the koa plantation (i.e, KP). 
 
 <center>  
   
@@ -339,7 +339,7 @@ mwu(HAK.data, Canopy.area, Plot) # not
 Age can be an important determinant of nitrogen fixing ability, with younger trees fixing more nitrogen than old trees. The growth rate of A. koa across the Hawaiian Islands is variable, with dbh-based growth rates of 10-15 mm/y in sunlit areas where the crown is exposed and 6-7 mm/y estimated across a range of sites in the Hawai‘i Department of Forestry and Wildlife long-term forest plots. We assume *A. koa* in the  plantation have growth rates similar to other sunlit areas across Hawai‘i (~ 12 mm/y) and *A. koa* in the remnant forest are 4 mm/y.  
 
 Inspect age estimates with box-plots.
-```{r age estimate, fig.show='hold', fig.dim=c(3,4), fig.align='center', fig.caption="**Figure 5**. Box plot estimates of *Acacia koa* age in the koa plantation (KP) and remnant forest (RK) using diameter at breast height-based growth rates of 12 mm (KP) and 4 mm per year (RK). Asterisk indicate significant plot effects (p<0.05)", message=FALSE, results='hide'}
+```{r age estimate, fig.show='hold', fig.dim=c(4,3), fig.align='center', fig.caption="**Figure 5**. Box plot estimates of *Acacia koa* age in the koa plantation (KP) and remnant forest (RK) using diameter at breast height-based growth rates of 12 mm (KP) and 4 mm per year (RK). Asterisk indicate significant plot effects (p<0.05)", message=FALSE, results='hide'}
 ###################### age
 
 # approx age
@@ -918,7 +918,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d15N plot 
 par(mfrow=c(1,2))
-soil.d15N.isoscape<-gridExtra::grid.arrange(plotd15N.krig.KP.soil, plotd15N.krig.RK.soil, ncol=2, nrow=1, widths = c(1.2,1))
+soil.d15N.isoscape<-gridExtra::grid.arrange(plotd15N.krig.KP.soil, plotd15N.krig.RK.soil, ncol=2, nrow=1, widths = c(1.22,1))
 soil.d15N.isoscape
 dev.copy(png, "figures/Fig 4_ab.d15N.soil.isoscape.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
@@ -1008,7 +1008,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d13C plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd13C.krig.KP.soil, plotd13C.krig.RK.soil, ncol=2, nrow=1, widths = c(1.2,1))
+gridExtra::grid.arrange(plotd13C.krig.KP.soil, plotd13C.krig.RK.soil, ncol=2, nrow=1, widths = c(1.22,1))
 dev.copy(png, "figures/Fig 4_cd.d13C.isoscape.soils.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
@@ -1157,7 +1157,7 @@ grid.draw.ggmatrix <- function(x, recording = TRUE) {
 }
 ### combined KP-Rk krig d15N plot 
 par(mfrow=c(1,2))
-gridExtra::grid.arrange(plotd15N.krig.KP.plants, plotd15N.krig.RK.plants, ncol=2, nrow=1, widths = c(1.2,1))
+gridExtra::grid.arrange(plotd15N.krig.KP.plants, plotd15N.krig.RK.plants, ncol=2, nrow=1, widths = c(1.22,1))
 dev.copy(png, "figures/Fig 5_ab.d15N.isoscape.plants.png", width = 8, height = 4, units = 'in', res = 300)
 dev.off()
 
