@@ -6,7 +6,8 @@ CB Wall<sup>1,2</sup>, SIO Swift<sup>2</sup>, CM D'Antonia<sup>3</sup>, G Gebaue
 <sup>2</sup>University of Hawai'i at Mānoa, Pacific Biosciences Research Center, USA  
 <sup>3</sup>University of California, Santa Barbara, USA  
 <sup>4</sup>University of Bayreuth, Germany   
- 
+  
+  
 <p align="center">
   <img align="center" src="https://github.com/cbwall/Hakalau-Isoscapes/blob/master/photos/Hakalau_forest_figure_small.jpg" width="50%" height="50%">
 </p>
@@ -43,7 +44,7 @@ Important data files to generate maps, figures, and run models can be foudn in t
  
  Explanation of column info in raw *Hakalau.rawdata.csv*
   - *Plot* = either Koa Plantation (KP) or remnant koa forest (RK)
-  - *Sample* = soil, koa (*Acacia koa*), RUBARG (*Rubus argutus*), RUBHAW (*Rubus hawaiiensis*)
+  - *Sample* = soil, koa (*Acacia koa*), RUBARG (*Rubus argutus*), RUBHAW (*Rubus hawaiensis*, (‘ākala))
   - *ID* = individual koa trees, not IDs for Rubus spp. (RUBARG, RUBHAW)
   - *Position.point* = the quadrat each plant is in, with corresponding *ID* number (for koa only)
   - *replicates* = the number of replicates sampled for each sample (pooling across different plants only in *Rubus* spp.)
