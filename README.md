@@ -51,15 +51,15 @@ Important data files to generate maps, figures, and run models can be foudn in t
   - *DBH..cm.1* - *DBH..cm.5* = diameter at breast height (dbh) in cm for individual stem/trunks, with #(1-5) indicating the number of stems
   - *canopy.0..m* - *canopy.270..m* = canopy area measured in m, making an ellipse of 4 headings (0, 90, 180, 270 degrees)
   - *N..ug* = nitrogen content in micrograms N in soil and foliar samples run for isotope analysis
-  - *N..percent* = percent nitrogen for soil and foliar samples run for isotope analyses
+  - *N..percent* = percent nitrogen for soil and foliar samples run for isotope analyses, this is used for C:N calc (%C/%N)
   - *Total.N..mmol.gdw* = total N content for soil and foliar samples as mmol of N per gram of dry weight in parent material
   - *d15N* = δ<sup>15</sup>N, nitrogen isotope values relative to air-standard in permil notation
   - *C..ug* = carbon content in micrograms C in soil and foliar samples run for isotope analysis, later used to calculate molar C:N
-  - *C..percent* = percent carbon for soil and foliar samples run for isotope analyses
+  - *C..percent* = percent carbon for soil and foliar samples run for isotope analyses, , this is used for C:N calc (%C/%N)
   - *Total.C..mmol.gdw* = total C content for soil and foliar samples as mmol of C per gram of dry weight in parent material
   - *d13C* = δ<sup>13</sup>C, carbon isotope values relative to VPDB-standard in permil notation
   - *C.N* = molar ratio of carbon to nitrogen using *Total.C..mmol.gdw / Total.N..mmol.gdw*
   
-In the final data *Hakalau.fulldata.csv*, all the above apply, except *DBH.total* (cm) and *Canopy.area* (m) are now the calculated variables.
+In the final data *Hakalau.fulldata.csv*, all the above apply, except *DBH.total* (cm) and *Canopy.area* (m) are now the calculated variables. In addition, carbon : nitrogen ratios (C:N) are calculated for samples using %C/%N. 
  
 
