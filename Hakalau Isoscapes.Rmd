@@ -1,7 +1,7 @@
 ---
 title: "Isoscapes in Remnant and Restored Montane Forests of Hawai‘i Island"
 author: "CB Wall, SIO Swift, CM D'Antonio, G Gebauer, NA Hynson"
-date: "4/29/2023"
+date: "5/4/2023"
 output:
   html_document:
     code_folding: hide
@@ -26,7 +26,7 @@ pacman::p_load("RgoogleMaps", "SDMTools", "car", "rgdal", "ggmap", "gridExtra", 
 
 ### Background  
 **Hakalau National Forest Wildlife Refuge Isoscapes**  
-Native Hawaiian montane mesic and wet forests have significantly declined due to over a century of deforestation and extensive human- and livestock-mediated disturbance. Many once native montane forests in Hakalau were converted to pastureland in the 19th century. After a century of deforestation and goat/cattle grazing, parcels have undergone afforestation, restoration, and fencing to keep out ungulates. Afforestation efforts focused on planting 300,000 canopy species - *Acacia koa* (Hawaiian name: *koa*) - in abandoned pasturelands (now, koa plantations, *KP sites*) to jump-start ecosystem succession. However, recovery of these systems remains incomplete.
+Native Hawaiian montane mesic and wet forests have significantly declined due deforestation and extensive human- and livestock-mediated disturbance. Many once native montane forests in Hakalau were converted to pastureland in the 19th century. After a century of deforestation and goat/cattle grazing, parcels have undergone afforestation, restoration, and fencing to keep out ungulates. Afforestation efforts focused on planting 300,000 canopy species - *Acacia koa* (Hawaiian name: *koa*) - in abandoned pasturelands (now, koa plantations, *KP sites*) to jump-start ecosystem succession. However, recovery of these systems remains incomplete.
 
 <center>  
   
@@ -35,7 +35,7 @@ Native Hawaiian montane mesic and wet forests have significantly declined due to
 </center>  
 
 
-We collected samples 20-21 August 2019 in Hakalau Forest, Hawai‘i Island. Plants and soil samples were collected from two areas: the koa plantation (*KP sites*), and a remnant mixed koa-‘ōhi‘a forest (*RK sites*). The canopy species in these forests are engineers of forest habitats are dominated by *Acacia koa*, an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria, and a non-N~2~-fixing hardwood species *Metrosiderous polymorpha* (Hawaiian name: *‘ōhi‘a*) Understory species include *Rubus argutus* - an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiensis* (Hawaiian name: ‘ākala); both are members of the Roseaceae family. Notably, *R. argutus* was found more in the remnant forest (i.e., RK) and the indigenous *R. hawaiiensis* was common in the koa plantation (i.e, KP). 
+We collected samples 20-21 August 2019 in Hakalau Forest, Hawai‘i Island. Plants and soil samples were collected from two areas: the koa plantation (`KP sites`), and a remnant mixed koa-‘ōhi‘a forest (`RK sites`). The canopy species in these forests are engineers of forest habitats are dominated by *Acacia koa*, an indigenous hardwood species that forms native forest canopies and associates with nitrogen fixing bacteria, and a non-N~2~-fixing hardwood species *Metrosiderous polymorpha* (Hawaiian name: *‘ōhi‘a*) Understory species include *Rubus argutus* - an invasive species (common name: sawtooth blackberry) -- and an endemic species *Rubus hawaiensis* (Hawaiian name: ‘ākala); both are members of the Roseaceae family. Notably, *R. argutus* was found more in the remnant forest (i.e., RK) and the indigenous *R. hawaiiensis* was common in the koa plantation (i.e, KP). 
 
 <center>  
   
@@ -44,9 +44,11 @@ We collected samples 20-21 August 2019 in Hakalau Forest, Hawai‘i Island. Plan
 </center>  
 
   
-Plants samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a δ^13^C and δ^15^N stable isotope landscapes, hereafter 'isoscapes'. Koa and *Rubus* spp. were collected within each 4 x 5m subplot.  *Plot densities were...*   
-KP: Koa (18 trees) Rubus (14 plants) per 20 x 35m plot= *257 Koa and 200 Rubus per hectare*  
-RK: Koa (10 trees) Rubus (28 plants) per 20 x 35m plot= *142 Koa and 400 Rubus per hectare*  
+Plants samples were collected in a spatially explicit fashion (every 4 or 5m) with a 20 x 35m superplot, consisting of thirty-five 4 x 5m subplots. This data was used to create a δ^13^C and δ^15^N stable isotope landscapes, hereafter 'isoscapes'. Koa and *Rubus* spp. were collected within each 4 x 5m subplot.  
+  
+**Plot densities were...**   
+KP: Koa (18 trees) *Rubus* sp (14 plants) per 20 x 35m plot= 257 Koa and 200 *Rubus* per hectare*  
+RK: Koa (10 trees) *Rubus* sp. (28 plants) per 20 x 35m plot= 142 Koa and 400 *Rubus* per hectare*  
 
 
 ### Site Maps
@@ -339,7 +341,7 @@ mwu(HAK.data, Canopy.area, Plot) # not
 Age can be an important determinant of nitrogen fixing ability, with younger trees fixing more nitrogen than old trees. The growth rate of A. koa across the Hawaiian Islands is variable, with dbh-based growth rates of 10-15 mm/y in sunlit areas where the crown is exposed and 6-7 mm/y estimated across a range of sites in the Hawai‘i Department of Forestry and Wildlife long-term forest plots. We assume *A. koa* in the  plantation have growth rates similar to other sunlit areas across Hawai‘i (~ 12 mm/y) and *A. koa* in the remnant forest are 4 mm/y.  
 
 Inspect age estimates with box-plots.
-```{r age estimate, fig.show='hold', fig.dim=c(4,3), fig.align='center', fig.caption="**Figure 5**. Box plot estimates of *Acacia koa* age in the koa plantation (KP) and remnant forest (RK) using diameter at breast height-based growth rates of 12 mm (KP) and 4 mm per year (RK). Asterisk indicate significant plot effects (p<0.05)", message=FALSE, results='hide'}
+```{r age estimate, fig.show='hold', fig.dim=c(4,4), fig.align='center', fig.caption="**Figure 5**. Box plot estimates of *Acacia koa* age in the koa plantation (KP) and remnant forest (RK) using diameter at breast height-based growth rates of 12 mm (KP) and 4 mm per year (RK). Asterisk indicate significant plot effects (p<0.05)", message=FALSE, results='hide'}
 ###################### age
 
 # approx age
@@ -646,6 +648,9 @@ anova(TC.mod.RK) # Rubus and Koa NOT diff
 The first model will test for **differences in C:N among *Sample Types* and between *Forests* **. 
 ```{r CN values, fig.show='hide'}
 ####### C:N content
+
+#### note C:N ratios are calculated from %C and %N, not molar ratios
+  
 CN.mod<-lm(C.N~Sample.Type*Plot, data=HAK.data)
 CN.stat<-anova(CN.mod) # plants signif.
 #plot(allEffects(TC.mod))
