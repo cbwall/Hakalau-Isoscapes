@@ -1,7 +1,9 @@
 ## Isoscapes of remnant and restored Hawaiian montane forests reveal differences in biological nitrogen fixation and carbon inputs  
-Data here is found in following manuscript (in revision, *PeerJ*)   
-  
-CB Wall<sup>1,2</sup>, SIO Swift<sup>2</sup>, CM D'Antonia<sup>3</sup>, G Gebauer<sup>4</sup>, NA Hynson<sup>2</sup>  
+
+<a href="https://zenodo.org/badge/latestdoi/207899968"><img src="https://zenodo.org/badge/207899968.svg" alt="DOI"></a>
+
+CB Wall<sup>1,2</sup>, SIO Swift<sup>2</sup>, CM D'Antonia<sup>3</sup>, G Gebauer<sup>4</sup>, NA Hynson<sup>2</sup>. Isoscapes of remnant and restored Hawaiian montane forests reveal differences in biological nitrogen fixation and carbon inputs. 2023. PeerJ 
+
 <sup>1</sup>University of California, San Diego, USA  
 <sup>2</sup>University of Hawai'i at Mānoa, Pacific Biosciences Research Center, USA  
 <sup>3</sup>University of California, Santa Barbara, USA  
